@@ -145,5 +145,5 @@ wget https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/ha
 > 注意：此程式需在有連接 HDMI 螢幕的桌面環境，或透過 VNC 遠端桌面執行，否則無法顯示即時影像視窗。
 
 ```bash
-python3 face_demo.py
+python3 face_detect.py
 ```
