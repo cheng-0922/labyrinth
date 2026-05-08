@@ -1,15 +1,7 @@
 # labyrinth
 ### initial sets
-
+```bash
 sudo apt install python3-opencv -y
-
-rpicam-hello --list-cameras
-
-rpicam-hello -t -1
-
-rpicam-vid -t 4999 -o ~/project/sample/test.h264
-
-ffmpeg -r 29 -fflags +genpts -i test.h264 -c:v copy test.mp4
 
 echo "# labyrinth" >> README.md
 
@@ -32,3 +24,16 @@ ssh-keygen -t ed25519 -C "team-rpi@project"
 cat ~/.ssh/id_ed25519.pub
 
 git push -u origin main
+```
+
+```bash
+rpicam-hello --list-cameras
+
+rpicam-hello -t -1
+
+rpicam-vid -t 5000 -o ~/project/sample/test.h264
+
+ffmpeg -r 30 -fflags +genpts -i test.h264 -c:v copy test.mp4
+
+
+```
