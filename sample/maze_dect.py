@@ -13,8 +13,9 @@ def extract_maze_to_grid(img, maze_size, output_csv="maze_grid.csv"):
     else:
         gray = img
 
-    # 2. 進行二值化處理 (設定閾值 128，黑白反轉)
-    _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+    # 2. 進行二值化處理 (設定閾值 k，黑白反轉)
+    k = 200
+    _, thresh = cv2.threshold(gray, k, 255, cv2.THRESH_BINARY_INV)
 
     height, width = thresh.shape
     cell_h = height // maze_size
