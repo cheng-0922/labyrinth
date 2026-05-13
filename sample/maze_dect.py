@@ -13,8 +13,9 @@ def extract_maze_to_grid(img, maze_size, output_csv="maze_grid.csv"):
     else:
         gray = img
 
-    # 2. 進行二值化處理 (設定閾值 128，黑白反轉)
-    _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+    # 2. 進行二值化處理 (設定閾值 ，黑白反轉)
+    threshold = 180
+    _, thresh = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY_INV)
 
     height, width = thresh.shape
     cell_h = height // maze_size
@@ -71,7 +72,7 @@ try:
         if key == ord('s'):
             print("\n正在掃描迷宮...")
             # 傳入彩色 frame 進行解析，尺寸設為 8x8
-            thresh_img, grid = extract_maze_to_grid(frame, maze_size=8, output_csv="maze.csv")
+            thresh_img, grid = extract_maze_to_grid(frame, maze_size=30, output_csv="maze.csv")
 
             # 顯示電腦看到的黑白二值化結果，用來確認有沒有誤判
             cv2.imshow("Threshold Result", thresh_img)
