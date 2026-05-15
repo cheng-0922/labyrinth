@@ -1,11 +1,9 @@
 import cv2
 import numpy as np
 
-import argparse
-import sys
 
 class MazeGraphExtractor:
-    def __init__(self, maze_size=8, wall_threshold=0.25, blur_kernel=5, debug=False):
+    def __init__(self, maze_size=9, wall_threshold=0.25, blur_kernel=5, debug=False):
         self.maze_size = maze_size
         self.wall_threshold = wall_threshold
         self.blur_kernel = blur_kernel
@@ -111,10 +109,23 @@ class MazeGraphExtractor:
             for col in range(self.maze_size):
                 y1, y2 = int(row * cell_h), int((row + 1) * cell_h)
                 x1, x2 = int(col * cell_w), int((col + 1) * cell_w)
+                
                 cell_roi = thresh[y1:y2, x1:x2]
                 white_area = cv2.countNonZero(cell_roi)
                 cell_area = max((y2 - y1) * (x2 - x1), 1)
-                if (white_area / cell_area) > self.wall_threshold:
+
+                # ==========================================
+                # 🌟 【邊緣補償邏輯】：修復被切半的外牆
+                # ==========================================
+                # 如果是位在迷宮「最外圈」的網格 (row或col為0，或等於最大值)
+                if row == 0 or row == self.maze_size - 1 or col == 0 or col == self.maze_size - 1:
+                    # 把它偵測到的牆壁面積乘以 2，用數學還原真實的牆壁厚度
+                    effective_area = white_area * 2.0
+                else:
+                    effective_area = white_area
+
+                # 使用補償後的面積來判定是否超過門檻
+                if (effective_area / cell_area) > self.wall_threshold:
                     maze_grid[row][col] = 1 
                 else:
                     maze_grid[row][col] = 0
@@ -136,62 +147,3 @@ class MazeGraphExtractor:
         return adj_list
 
 
-if __name__ == "__main__":
-    # --- 1. 設定啟動參數 ---
-    parser = argparse.ArgumentParser(description="Maze Scanner")
-    parser.add_argument("-i", "--image", type=str, help="指定靜態圖片的路徑 (若無則啟動相機)")
-    parser.add_argument("-d", "--debug", action="store_true", help="開啟除錯視窗")
-    args = parser.parse_args()
-
-    # 初始化萃取器，將 debug 狀態傳入
-    extractor = MazeGraphExtractor(maze_size=8, wall_threshold=0.25, debug=args.debug)
-
-    # --- 2. 靜態圖片模式 ---
-    if args.image:
-        print(f"📷 正在讀取圖片: {args.image}")
-        frame = cv2.imread(args.image)
-        if frame is None:
-            print("❌ 錯誤：找不到或無法讀取圖片。")
-            sys.exit(1)
-
-        # 處理圖片
-        warped_img, graph = extractor.process(frame)
-        
-        if graph is not None:
-            cv2.imshow("Original Image", frame)
-            cv2.imshow("Final Warped Maze", warped_img)
-            print("✅ 迷宮解析完成！(按任意鍵關閉)")
-            cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
-        cv2.destroyAllWindows()
-
-    # --- 3. 實體相機模式 ---
-    else:
-        try:
-            # 只有在相機模式才引入 picamera2，避免在一般電腦上報錯
-            from picamera2 import Picamera2
-            picam2 = Picamera2()
-            picam2.start()
-            print("🎥 相機已啟動。(按 's' 解析，按 'q' 離開)")
-        except ImportError:
-            print("❌ 錯誤：找不到 picamera2 模組。若是使用一般電腦，請加上 -i 參數指定圖片測試。")
-            sys.exit(1)
-
-        try:
-            while True:
-                frame = picam2.capture_array()
-                cv2.imshow("Camera Preview", frame)
-                key = cv2.waitKey(1) & 0xFF
-
-                if key == ord('s'):
-                    print("\n🔍 掃描中...")
-                    warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        cv2.imshow("Final Warped Maze", warped_img)
-                        print("✅ 解析成功！可繼續掃描或按 'q' 離開")
-
-                elif key == ord('q'):
-                    break
-        finally:
-            picam2.stop()
-            cv2.destroyAllWindows()
-            print("相機已安全關閉")

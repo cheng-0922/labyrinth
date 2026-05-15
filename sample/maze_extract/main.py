@@ -1,0 +1,69 @@
+
+import argparse
+import sys
+import cv2
+
+from maze_extract import MazeGraphExtractor 
+
+if __name__ == "__main__":
+    # --- 1. 設定啟動參數 ---
+    parser = argparse.ArgumentParser(description="Maze Scanner")
+    parser.add_argument("-i", "--image", type=str, help="指定靜態圖片的路徑 (若無則啟動相機)")
+    parser.add_argument("-d", "--debug", action="store_true", help="開啟除錯視窗")
+    args = parser.parse_args()
+
+    # 初始化萃取器，將 debug 狀態傳入
+    extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.25, debug=args.debug)
+
+    # --- 2. 靜態圖片模式 ---
+    if args.image:
+        print(f"📷 正在讀取圖片: {args.image}")
+        frame = cv2.imread(args.image)
+        if frame is None:
+            print("❌ 錯誤：找不到或無法讀取圖片。")
+            sys.exit(1)
+
+        # 處理圖片
+        warped_img, graph = extractor.process(frame)
+        
+        if graph is not None:
+            cv2.imshow("Original Image", frame)
+            cv2.imshow("Final Warped Maze", warped_img)
+            print("✅ 迷宮解析完成！(按任意鍵關閉)")
+            for node, neighbors in list(graph.items()):
+                print(f"節點 {node} 可以通往: {neighbors}")
+
+            cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
+        cv2.destroyAllWindows()
+
+    # --- 3. 實體相機模式 ---
+    else:
+        try:
+            # 只有在相機模式才引入 picamera2，避免在一般電腦上報錯
+            from picamera2 import Picamera2
+            picam2 = Picamera2()
+            picam2.start()
+            print("🎥 相機已啟動。(按 's' 解析，按 'q' 離開)")
+        except ImportError:
+            print("❌ 錯誤：找不到 picamera2 模組。若是使用一般電腦，請加上 -i 參數指定圖片測試。")
+            sys.exit(1)
+
+        try:
+            while True:
+                frame = picam2.capture_array()
+                cv2.imshow("Camera Preview", frame)
+                key = cv2.waitKey(1) & 0xFF
+
+                if key == ord('s'):
+                    print("\n🔍 掃描中...")
+                    warped_img, graph = extractor.process(frame)
+                    if graph is not None:
+                        cv2.imshow("Final Warped Maze", warped_img)
+                        print("✅ 解析成功！可繼續掃描或按 'q' 離開")
+                        
+                elif key == ord('q'):
+                    break
+        finally:
+            picam2.stop()
+            cv2.destroyAllWindows()
+            print("相機已安全關閉")
