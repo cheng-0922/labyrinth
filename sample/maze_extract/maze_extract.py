@@ -16,8 +16,9 @@ class MazeGraphExtractor:
             return None, None
 
         warped_img = self._four_point_transform(img, pts)
-        maze_grid = self._extract_grid(warped_img)
-        adjacency_list = self._build_adjacency_list(maze_grid)
+        
+        # 直接從影像中掃描「牆壁交界處」，建構出圖論的 Adjacency List
+        adjacency_list = self._extract_graph(warped_img)
 
         return warped_img, adjacency_list
 
@@ -80,70 +81,81 @@ class MazeGraphExtractor:
         M = cv2.getPerspectiveTransform(rect, dst)
         return cv2.warpPerspective(img, M, (maxWidth, maxHeight))
 
-    def _extract_grid(self, img):
+    def _extract_graph(self, img):
+        """
+        直接掃描網格邊界，判斷相鄰通道是否連通
+        """
         h, w = img.shape[:2]
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         k_size = self.blur_kernel | 1 
         blurred = cv2.GaussianBlur(gray, (k_size, k_size), 0)
         _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-        cell_h, cell_w = h / self.maze_size, w / self.maze_size
-        pad_y, pad_x = int(cell_h * 0.5), int(cell_w * 0.5)
+        cell_h = h / self.maze_size
+        cell_w = w / self.maze_size
+        
+        # 初始化 64 個節點 (所有格子預設皆為獨立通道)
+        adj_list = { (r, c): [] for r in range(self.maze_size) for c in range(self.maze_size) }
+        
+        # 設定「邊界檢查器」的寬度與內縮
+        # 內縮是為了避開十字路口的交叉點，我們只檢查「通道正中央」的牆壁段落
+        inset_y = int(cell_h * 0.2)
+        inset_x = int(cell_w * 0.2)
+        wall_thickness_x = max(int(cell_w * 0.15), 2)
+        wall_thickness_y = max(int(cell_h * 0.15), 2)
 
-        thresh[0:pad_y, :] = 0
-        thresh[h-pad_y:h, :] = 0
-        thresh[:, 0:pad_x] = 0
-        thresh[:, w-pad_x:w] = 0
+        # 準備 Debug 視覺化圖
+        debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR) if self.debug else None
+
+        # 1. 檢查左右相鄰的格子 (垂直的牆壁)
+        for r in range(self.maze_size):
+            for c in range(self.maze_size - 1): # 只需要檢查到倒數第二格
+                wall_x = int((c + 1) * cell_w)  # 兩格交界的 X 座標
+                
+                # 框出交界處的掃描範圍 (ROI)
+                y1 = int(r * cell_h) + inset_y
+                y2 = int((r + 1) * cell_h) - inset_y
+                x1 = wall_x - wall_thickness_x
+                x2 = wall_x + wall_thickness_x
+                
+                roi = thresh[y1:y2, x1:x2]
+                white_area = cv2.countNonZero(roi)
+                area = max((y2 - y1) * (x2 - x1), 1)
+
+                # 如果這個狹長的交界區沒有什麼黑線 (小於門檻)，代表通道是相連的！
+                if (white_area / area) < self.wall_threshold:
+                    adj_list[(r, c)].append((r, c + 1))
+                    adj_list[(r, c + 1)].append((r, c))
+                    if self.debug: 
+                        cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 255, 0), -1) # 綠色代表相通
+                else:
+                    if self.debug: 
+                        cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 0, 255), -1) # 紅色代表被牆阻擋
+
+        # 2. 檢查上下相鄰的格子 (水平的牆壁)
+        for r in range(self.maze_size - 1):
+            for c in range(self.maze_size):
+                wall_y = int((r + 1) * cell_h) # 兩格交界的 Y 座標
+                
+                x1 = int(c * cell_w) + inset_x
+                x2 = int((c + 1) * cell_w) - inset_x
+                y1 = wall_y - wall_thickness_y
+                y2 = wall_y + wall_thickness_y
+                
+                roi = thresh[y1:y2, x1:x2]
+                white_area = cv2.countNonZero(roi)
+                area = max((y2 - y1) * (x2 - x1), 1)
+
+                if (white_area / area) < self.wall_threshold:
+                    adj_list[(r, c)].append((r + 1, c))
+                    adj_list[(r + 1, c)].append((r, c))
+                    if self.debug: 
+                        cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 255, 0), -1)
+                else:
+                    if self.debug: 
+                        cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 0, 255), -1)
 
         if self.debug:
-            # 【除錯畫面 3】顯示拉平並消除邊緣紅塊後的黑白迷宮
-            # 為了讓網格更清楚，我們在上面畫出紅色格線
-            grid_preview = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
-            for i in range(1, self.maze_size):
-                cv2.line(grid_preview, (0, int(i*cell_h)), (w, int(i*cell_h)), (0, 0, 255), 1)
-                cv2.line(grid_preview, (int(i*cell_w), 0), (int(i*cell_w), h), (0, 0, 255), 1)
-            cv2.imshow("Debug: Grid Threshold", grid_preview)
+            cv2.imshow("Debug: Edge Scanning", debug_img)
 
-        maze_grid = np.zeros((self.maze_size, self.maze_size), dtype=int)
-        for row in range(self.maze_size):
-            for col in range(self.maze_size):
-                y1, y2 = int(row * cell_h), int((row + 1) * cell_h)
-                x1, x2 = int(col * cell_w), int((col + 1) * cell_w)
-                
-                cell_roi = thresh[y1:y2, x1:x2]
-                white_area = cv2.countNonZero(cell_roi)
-                cell_area = max((y2 - y1) * (x2 - x1), 1)
-
-                # ==========================================
-                # 🌟 【邊緣補償邏輯】：修復被切半的外牆
-                # ==========================================
-                # 如果是位在迷宮「最外圈」的網格 (row或col為0，或等於最大值)
-                if row == 0 or row == self.maze_size - 1 or col == 0 or col == self.maze_size - 1:
-                    # 把它偵測到的牆壁面積乘以 2，用數學還原真實的牆壁厚度
-                    effective_area = white_area * 2.0
-                else:
-                    effective_area = white_area
-
-                # 使用補償後的面積來判定是否超過門檻
-                if (effective_area / cell_area) > self.wall_threshold:
-                    maze_grid[row][col] = 1 
-                else:
-                    maze_grid[row][col] = 0
-        return maze_grid
-
-    def _build_adjacency_list(self, grid):
-        adj_list = {}
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        for r in range(self.maze_size):
-            for c in range(self.maze_size):
-                if grid[r][c] == 0:
-                    node = (r, c)
-                    adj_list[node] = []
-                    for dr, dc in directions:
-                        nr, nc = r + dr, c + dc
-                        if 0 <= nr < self.maze_size and 0 <= nc < self.maze_size:
-                            if grid[nr][nc] == 0:
-                                adj_list[node].append((nr, nc))
         return adj_list
-
-
