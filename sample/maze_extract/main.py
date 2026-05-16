@@ -2,7 +2,8 @@
 import argparse
 import sys
 import cv2
-
+from maze import Maze
+from node import Node
 from maze_extract import MazeGraphExtractor 
 
 if __name__ == "__main__":
@@ -24,14 +25,25 @@ if __name__ == "__main__":
             sys.exit(1)
 
         # 處理圖片
-        warped_img, graph = extractor.process(frame)
+        warped_img, raw_graph = extractor.process(frame)
         
-        if graph is not None:
+        if raw_graph is not None:
             cv2.imshow("Original Image", frame)
             cv2.imshow("Final Warped Maze", warped_img)
             print("✅ 迷宮解析完成！(按任意鍵關閉)")
-            for node, neighbors in list(graph.items()):
-                print(f"節點 {node} 可以通往: {neighbors}")
+            if raw_graph is not None:
+                # 2. 實例化你自己的 Maze 類別
+                my_maze = Maze()
+                
+                # 3. 把 tuple 字典餵給新寫的 load_from_graph 函式
+                my_maze.load_from_graph(raw_graph)
+
+                # 測試一下轉換結果：印出起點 (0, 0) 的所有 Successors
+                
+                start = (4,0)
+                end = (4,8)
+                nodelist = my_maze.BFS_2(my_maze.node_dict[(4,0)],my_maze.node_dict[(4,8)] )
+                
 
             cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
         cv2.destroyAllWindows()
