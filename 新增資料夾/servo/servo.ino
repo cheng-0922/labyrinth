@@ -4,7 +4,7 @@ Servo servoX;
 Servo servoY;
 
 const int servoXPin = A3;
-const int servoYPin = A5;
+const int servoYPin = A4;
 
 const int joyXPin = A7;
 const int joyYPin = A6;
@@ -12,27 +12,38 @@ const int joyYPin = A6;
 const int center = 512;
 const int deadZone = 100;
 
-const int homeAngle = 90;
+// 伺服馬達的基準角度
+const int baseAngleX = 90;
+const int baseAngleY = 90;
+
+// 限制在基準點正負 20 度
 const int swingAngle = 20;
 
-const int minAngle = homeAngle - swingAngle;  // 70
-const int maxAngle = homeAngle + swingAngle;  // 110
+const int minAngleX = baseAngleX - swingAngle;
+const int maxAngleX = baseAngleX + swingAngle;
 
-float angleX = homeAngle;
-float angleY = homeAngle;
+const int minAngleY = baseAngleY - swingAngle;
+const int maxAngleY = baseAngleY + swingAngle;
 
-// 最大轉動速度，數字越大轉越快
+// 目前伺服馬達角度
+float angleX = baseAngleX;
+float angleY = baseAngleY;
+
+// 最大轉動速度
 const float maxSpeed = 1.5;
 
-// 每次更新間隔，越大越慢
-const int moveDelay = 20;
+// 更新間隔，越大越慢
+const int moveDelay = 30;
 
 void setup() {
   servoX.attach(servoXPin);
   servoY.attach(servoYPin);
 
-  servoX.write(angleX);
-  servoY.write(angleY);
+  // 開機時先讓伺服馬達回到基準角
+  servoX.write(baseAngleX);
+  servoY.write(baseAngleY);
+
+  delay(500);
 }
 
 void loop() {
@@ -45,12 +56,10 @@ void loop() {
   float speedX = 0;
   float speedY = 0;
 
-  // X 軸
   if (abs(offsetX) > deadZone) {
     speedX = map(offsetX, -512, 511, -maxSpeed * 100, maxSpeed * 100) / 100.0;
   }
 
-  // Y 軸
   if (abs(offsetY) > deadZone) {
     speedY = map(offsetY, -512, 511, -maxSpeed * 100, maxSpeed * 100) / 100.0;
   }
@@ -58,8 +67,9 @@ void loop() {
   angleX += speedX;
   angleY += speedY;
 
-  angleX = constrain(angleX, minAngle, maxAngle);
-  angleY = constrain(angleY, minAngle, maxAngle);
+  // 角度限制在「伺服馬達基準點 ± 20 度」
+  angleX = constrain(angleX, minAngleX, maxAngleX);
+  angleY = constrain(angleY, minAngleY, maxAngleY);
 
   servoX.write((int)angleX);
   servoY.write((int)angleY);
