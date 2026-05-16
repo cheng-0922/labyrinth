@@ -50,7 +50,8 @@ if __name__ == "__main__":
 
         try:
             while True:
-                frame = picam2.capture_array()
+                raw_frame = picam2.capture_array()
+                frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                 cv2.imshow("Camera Preview", frame)
                 key = cv2.waitKey(1) & 0xFF
 

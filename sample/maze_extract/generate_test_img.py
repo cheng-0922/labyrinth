@@ -31,7 +31,7 @@ def convert_to_mdf_maze(input_img_path="maze.png", output_path="test_maze.jpg"):
     # 【更新邏輯】：4 個紅色定位點正中心精準對齊頂點
     # ==========================================
     red_color = (0, 0, 220)
-    marker_radius = 5 # 半徑 25 小於單一網格的大小 (70)，因此紅點不會跨界干擾到通道
+    marker_radius = 15 # 半徑 25 小於單一網格的大小 (70)，因此紅點不會跨界干擾到通道
     
     # 直接畫在 (pad, pad) 也就是迷宮框線的正角落！
     cv2.circle(mdf, (pad, pad), marker_radius, red_color, -1)
