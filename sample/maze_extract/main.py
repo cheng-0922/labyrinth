@@ -14,7 +14,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # 初始化萃取器，將 debug 狀態傳入
-    extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.25, debug=args.debug)
+    extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.333, debug=args.debug)
 
     # --- 2. 靜態圖片模式 ---
     if args.image:

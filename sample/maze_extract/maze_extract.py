@@ -29,8 +29,8 @@ class MazeGraphExtractor:
         
         # 🌟 綠色的 HSV 範圍 (通常 Hue 在 40 到 80 之間)
         # 調整 S (飽和度) 和 V (亮度) 的下限以排除雜訊
-        lower_green = np.array([40, 0, 0])
-        upper_green = np.array([80, 255, 255])
+        lower_green = np.array([75, 100, 100])
+        upper_green = np.array([95, 255, 255])
         
         # 綠色不需要拼接，一個 mask 即可
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
@@ -90,36 +90,15 @@ class MazeGraphExtractor:
         return cv2.warpPerspective(img, self.M, (maxWidth, maxHeight))
 
     def _extract_graph(self, img):
-        """
-        掃描網格邊界，判斷相鄰通道是否連通。
-
-        針對 3mm 牆 / 150mm 全圖 / 9x9 格局的根本問題修正：
-
-        問題 1 — 全域 Otsu 無法處理木紋局部亮度變化
-            木板(MDF)表面紋路在全域二值化時被放大成雜訊，導致通道
-            ROI 裡出現假白點，把通道誤判成牆壁。
-            修正：改用 CLAHE 強化對比 + adaptiveThreshold 逐區域計算
-            閾值，讓木紋不再干擾黑線偵測。
-
-        問題 2 — wall_threshold=0.25 太低，無法區分「真通道」與「帶墨水暈開的通道」
-            計算：3mm 牆在 ROI 裡的填充率 ≈ 68%，墨水暈開的通道 ≈ 28%。
-            原始門檻 0.25 幾乎把所有墨水暈開都判成牆壁。
-            修正：預設提高為 0.45（位於 28% 和 68% 的中間點）。
-
-        問題 3 — wall_x 用 int() 截斷造成邊界偏移
-            在 480px 解析度下，每格 53.3px，int() 讓邊界每格誤差累積
-            最多 0.67px，在低解析度下讓 ROI 偏離真實牆線。
-            修正：改用 round() 計算所有格子邊界座標。
-        """
         h, w = img.shape[:2]
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
+        gray = cv2.convertScaleAbs(gray, alpha=1.7, beta=0)
         # ── 修正 1：CLAHE + 自適應閾值取代全域 Otsu ───────────────────────
         # CLAHE 先把木紋與黑線的對比拉開，再用自適應閾值讓每個小區域
         # 獨立計算門檻，徹底隔絕木紋雜訊對黑線偵測的干擾。
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
-        # blockSize 設為約一個格子寬度的一半（奇數），C=4->>2  讓黑線更突出
+        # blockSize 設為約一個格子寬度的一半（奇數），C=4  讓黑線更突出
         cell_px = int(min(h, w) / self.maze_size)
         block_size = max((cell_px // 2) | 1, 11)  # 確保奇數且至少 11
         
@@ -149,10 +128,10 @@ class MazeGraphExtractor:
 
         # ROI 參數
         # inset：避開十字路口墨水暈開，只掃中段 60%
-        inset_ratio = 0.20
+        inset_ratio = 0.30
         # wall_thickness：ROI 寬度設為實體牆寬的 1.2 倍，確保完整覆蓋
         # 3mm 牆 / 16.7mm 格 = 18%，× 1.2 = 22%，取單側 11%
-        thickness_ratio = 0.2  ##0.11
+        thickness_ratio = 0.12  ##0.11
 
         wall_thickness_x = max(round(cell_w * thickness_ratio), 1)
         wall_thickness_y = max(round(cell_h * thickness_ratio), 1)
