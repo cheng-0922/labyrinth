@@ -12,7 +12,7 @@ class MazeGraphExtractor:
         self.warp_dim = None
 
     def process(self, img):
-        pts = self._find_red_markers(img)
+        pts = self._find_green_markers(img)
         if pts is None:
             print("❌ 無法在畫面中找到足夠的紅色定位塊")
             return None, None
@@ -24,41 +24,40 @@ class MazeGraphExtractor:
 
         return warped_img, adjacency_list
 
-    def _find_red_markers(self, img):
+    def _find_green_markers(self, img):
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        mask1 = cv2.inRange(hsv, np.array([0, 70, 50]), np.array([10, 255, 255]))
-        mask2 = cv2.inRange(hsv, np.array([170, 70, 50]), np.array([180, 255, 255]))
-        red_mask = mask1 + mask2
+        
+        # ==========================================
+        # 🌟 綠色的 HSV 範圍 (Hue 大約在 40 到 80 之間)
+        # S(飽和度) 和 V(亮度) 設為 50~255 來過濾掉太暗或太白的雜訊
+        # ==========================================
+        lower_green = np.array([40, 50, 50])
+        upper_green = np.array([80, 255, 255])
+        
+        # 綠色不需要拼接，一個 mask 就搞定！
+        green_mask = cv2.inRange(hsv, lower_green, upper_green)
 
-        contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        valid_contours = [c for c in contours if cv2.contourArea(c) > 50]
-
-        if self.debug:
-            # 【除錯畫面 1】顯示紅色遮罩，確認有沒有被光線干擾
-            cv2.imshow("Debug: Red Mask", red_mask)
+        contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # 尋找面積大於 50 的有效輪廓
+        valid_contours = []
+        for c in contours:
+            if cv2.contourArea(c) > 50:
+                valid_contours.append(c)
 
         if len(valid_contours) < 4:
             return None
 
+        # 取面積最大的 4 個
         valid_contours = sorted(valid_contours, key=cv2.contourArea, reverse=True)[:4]
-        
-        centers = []
-        debug_img = img.copy() if self.debug else None
 
+        centers = []
         for c in valid_contours:
+            # 尋找最小包覆圓的圓心
             (x, y), radius = cv2.minEnclosingCircle(c)
             centers.append([x, y])
             
-            if self.debug:
-                # 【除錯畫面 2】在原圖上畫出電腦找到的 4 個綠圈圈與圓心
-                cv2.circle(debug_img, (int(x), int(y)), int(radius), (0, 255, 0), 2)
-                cv2.circle(debug_img, (int(x), int(y)), 3, (255, 0, 0), -1)
-
-        if self.debug:
-            cv2.imshow("Debug: Found Markers", debug_img)
-
         return np.array(centers, dtype="float32")
-
     # _order_points 與 _four_point_transform 保持不變...
     def _order_points(self, pts):
         rect = np.zeros((4, 2), dtype="float32")
@@ -114,15 +113,21 @@ class MazeGraphExtractor:
         # 獨立計算門檻，徹底隔絕木紋雜訊對黑線偵測的干擾。
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
-        # blockSize 設為約一個格子寬度的一半（奇數），C=4 讓黑線更突出
+        # blockSize 設為約一個格子寬度的一半（奇數），C=4->>2  讓黑線更突出
         cell_px = int(min(h, w) / self.maze_size)
         block_size = max((cell_px // 2) | 1, 11)  # 確保奇數且至少 11
+        
         thresh = cv2.adaptiveThreshold(
             enhanced, 255,
             cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv2.THRESH_BINARY_INV,
             block_size, 4
         )
+        kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 3))
+        kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 1))
+        # 只保留「夠粗」的線（細的地板接縫會被消掉）
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_h)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_v)
         # ────────────────────────────────────────────────────────────────────
 
         # ── 修正 3：改用 round() 計算格子邊界，消除 int() 截斷累積誤差 ────
@@ -141,7 +146,7 @@ class MazeGraphExtractor:
         inset_ratio = 0.20
         # wall_thickness：ROI 寬度設為實體牆寬的 1.2 倍，確保完整覆蓋
         # 3mm 牆 / 16.7mm 格 = 18%，× 1.2 = 22%，取單側 11%
-        thickness_ratio = 0.11
+        thickness_ratio = 0.2  ##0.11
 
         wall_thickness_x = max(round(cell_w * thickness_ratio), 1)
         wall_thickness_y = max(round(cell_h * thickness_ratio), 1)

@@ -77,7 +77,7 @@ if __name__ == "__main__":
                     if graph is not None:
                         cv2.imshow("Final Warped Maze", warped_img)
                         print("✅ 解析成功！可繼續掃描或按 'q' 離開")
-                        
+                                                
                 elif key == ord('q'):
                     break
         finally:
