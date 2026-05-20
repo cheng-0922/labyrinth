@@ -191,8 +191,6 @@ class Maze:
                 acts.append(Action(1))
             else:
                 acts.append(self.getAction(curr_dir,prev_node,target_node))
-
-            
             curr_dir = prev_node.get_direction(target_node)
 
         return acts

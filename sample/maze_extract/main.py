@@ -38,12 +38,16 @@ if __name__ == "__main__":
                 # 3. 把 tuple 字典餵給新寫的 load_from_graph 函式
                 my_maze.load_from_graph(raw_graph)
 
-                # 測試一下轉換結果：印出起點 (0, 0) 的所有 Successors
+                # 測試一下轉換結果：印出起點 所有
+                for i in my_maze.nodes:
+                    i.printparam()
                 
-                start = (4,0)
-                end = (4,8)
-                nodelist = my_maze.BFS_2(my_maze.node_dict[(4,0)],my_maze.node_dict[(4,8)] )
-                
+                start = (0,4)
+                end = (8,4)
+                nodelist = my_maze.BFS_2(my_maze.node_dict[start],my_maze.node_dict[end] )
+                for i in nodelist:
+                    print(i.get_index())
+                print(my_maze.actions_to_str(my_maze.getActions(nodelist)))
 
             cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
         cv2.destroyAllWindows()

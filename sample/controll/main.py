@@ -15,7 +15,6 @@ def get_absolute_directions(maze, path_nodes):
         next_node = path_nodes[i+1]
         
         d = current_node.get_direction(next_node) 
-        # 安全型別檢查
         if hasattr(d, 'value'):
             directions.append(d.value)
         else:
@@ -27,7 +26,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug", action="store_true", help="開啟除錯視窗")
     args = parser.parse_args()
 
-    # 初始化模組
     extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.25, debug=args.debug)
     controller = MazeController() 
 
@@ -68,7 +66,7 @@ if __name__ == "__main__":
             start_node = my_maze.node_dict[start_coord]
             end_node = my_maze.node_dict[end_coord]
         except KeyError as e:
-            print(f"❌ 錯誤：在迷宮地圖中找不到座標 {e}！起終點可能被判定為牆壁。")
+            print(f"❌ 錯誤：在迷宮地圖中找不到座標 {e.args[0]}！起終點可能被判定為牆壁。")
             sys.exit(1)
             
         path_nodes = my_maze.BFS_2(start_node, end_node)
@@ -79,10 +77,15 @@ if __name__ == "__main__":
         tilt_commands = get_absolute_directions(my_maze, path_nodes)
         print(f"🗺️ 規劃完成！需要執行 {len(tilt_commands)} 步。")
 
+        # 【防呆檢查】：確保有成功算出透視矩陣
+        if getattr(extractor, 'M', None) is None:
+            print("❌ 尚未取得透視矩陣，系統中止！")
+            sys.exit(1)
+
         # === 階段 3：初始化追蹤器 ===
         cv2.destroyAllWindows()
         tracker = MarbleTracker()
-        tracker.capture_background(picam2)
+        tracker.capture_background(picam2, extractor.M, extractor.warp_dim)
 
         print("\n🚀 請將【彈珠】放入起點，3 秒後開始自走...")
         time.sleep(3)
@@ -91,15 +94,24 @@ if __name__ == "__main__":
         step_idx = 0
         lost_counter = 0
         MAX_RETRIES = 10
+        retilt_count = 0
+        MAX_RETILTS = 3
         
         CELL_W = tracker.resolution[0] / extractor.maze_size
         CELL_H = tracker.resolution[1] / extractor.maze_size
 
         while step_idx < len(tilt_commands):
+            # 【必修 2】：提前檢查邊界，防止 IndexError
+            if step_idx >= len(tilt_commands): 
+                break
+                
             target_node = path_nodes[step_idx + 1]
             target_r, target_c = target_node.index 
             
-            x, y, debug_frame = tracker.detect(picam2)
+            raw = picam2.capture_array()
+            raw_bgr = cv2.cvtColor(raw, cv2.COLOR_RGB2BGR)
+            warped_live = cv2.warpPerspective(raw_bgr, extractor.M, extractor.warp_dim)
+            x, y, debug_frame = tracker.detect_from_frame(warped_live)
             
             if x is not None and y is not None:
                 lost_counter = 0 
@@ -112,17 +124,27 @@ if __name__ == "__main__":
                 
                 print(f"📍 彈珠: ({current_r}, {current_c}) | 目標: ({target_r}, {target_c})")
 
-                # 位置驗證
                 if current_r == target_r and current_c == target_c:
                     print("✅ 成功抵達節點！")
                     step_idx += 1
+                    retilt_count = 0 
+                    
                     if step_idx >= len(tilt_commands):
                         break 
+                        
+                    # 【修正】：消除一個 Cycle 的空窗期，抵達後立刻執行下一步傾斜
+                    next_tilt = tilt_commands[step_idx]
+                    controller.tilt_and_stop(next_tilt, tilt_time=0.4)
                 else:
                     print("🔄 尚未抵達或位置偏移，重新嘗試傾斜...")
-
-                next_tilt = tilt_commands[step_idx]
-                controller.tilt_and_stop(next_tilt, tilt_time=0.4)
+                    retilt_count += 1
+                    
+                    if retilt_count >= MAX_RETILTS:
+                        print(f"❌ 卡死在網格 ({current_r}, {current_c})，無法抵達目標，系統中止！")
+                        sys.exit(1)
+                        
+                    next_tilt = tilt_commands[step_idx]
+                    controller.tilt_and_stop(next_tilt, tilt_time=0.4)
                 
             else:
                 lost_counter += 1
