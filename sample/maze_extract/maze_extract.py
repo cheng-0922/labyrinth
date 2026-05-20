@@ -3,7 +3,7 @@ import numpy as np
 
 
 class MazeGraphExtractor:
-    def __init__(self, maze_size=9, wall_threshold=0.25, blur_kernel=5, debug=False):
+    def __init__(self, maze_size=9, wall_threshold=0.5, blur_kernel=0, debug=False):
         self.maze_size = maze_size
         self.wall_threshold = wall_threshold
         self.blur_kernel = blur_kernel

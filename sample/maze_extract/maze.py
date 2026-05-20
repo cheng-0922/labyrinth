@@ -5,7 +5,7 @@ from enum import IntEnum
 from typing import List
 
 import numpy as np
-import pandas
+#import pandas
 
 # 假設你原本的 node.py 裡面有這些定義
 from node import Direction, Node 
