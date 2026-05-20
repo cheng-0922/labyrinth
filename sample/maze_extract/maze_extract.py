@@ -29,7 +29,7 @@ class MazeGraphExtractor:
         
         # 🌟 綠色的 HSV 範圍 (通常 Hue 在 40 到 80 之間)
         # 調整 S (飽和度) 和 V (亮度) 的下限以排除雜訊
-        lower_green = np.array([40, 70, 70])
+        lower_green = np.array([40, 0, 0])
         upper_green = np.array([80, 255, 255])
         
         # 綠色不需要拼接，一個 mask 即可
