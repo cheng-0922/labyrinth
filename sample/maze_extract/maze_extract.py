@@ -27,38 +27,44 @@ class MazeGraphExtractor:
     def _find_green_markers(self, img):
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
-        # ==========================================
-        # 🌟 綠色的 HSV 範圍 (Hue 大約在 40 到 80 之間)
-        # S(飽和度) 和 V(亮度) 設為 50~255 來過濾掉太暗或太白的雜訊
-        # ==========================================
-        lower_green = np.array([40, 50, 50])
+        # 🌟 綠色的 HSV 範圍 (通常 Hue 在 40 到 80 之間)
+        # 調整 S (飽和度) 和 V (亮度) 的下限以排除雜訊
+        lower_green = np.array([40, 70, 70])
         upper_green = np.array([80, 255, 255])
         
-        # 綠色不需要拼接，一個 mask 就搞定！
+        # 綠色不需要拼接，一個 mask 即可
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
 
         contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        # 尋找面積大於 50 的有效輪廓
-        valid_contours = []
-        for c in contours:
-            if cv2.contourArea(c) > 50:
-                valid_contours.append(c)
+        valid_contours = [c for c in contours if cv2.contourArea(c) > 50]
+
+        if self.debug:
+            # 【除錯畫面 1】顯示綠色遮罩
+            cv2.imshow("Debug: Green Mask", green_mask)
 
         if len(valid_contours) < 4:
             return None
 
         # 取面積最大的 4 個
         valid_contours = sorted(valid_contours, key=cv2.contourArea, reverse=True)[:4]
-
+        
         centers = []
+        debug_img = img.copy() if self.debug else None
+
         for c in valid_contours:
-            # 尋找最小包覆圓的圓心
             (x, y), radius = cv2.minEnclosingCircle(c)
             centers.append([x, y])
             
+            if self.debug:
+                # 【除錯畫面 2】在原圖上畫出電腦找到的 4 個綠點
+                cv2.circle(debug_img, (int(x), int(y)), int(radius), (0, 255, 0), 2)
+                cv2.circle(debug_img, (int(x), int(y)), 3, (0, 255, 0), -1)
+
+        if self.debug:
+            cv2.imshow("Debug: Found Green Markers", debug_img)
+
         return np.array(centers, dtype="float32")
-    # _order_points 與 _four_point_transform 保持不變...
+
     def _order_points(self, pts):
         rect = np.zeros((4, 2), dtype="float32")
         s = pts.sum(axis=1)
