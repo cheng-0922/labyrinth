@@ -3,21 +3,21 @@
 Servo servoX;
 Servo servoY;
 
-const int servoXPin = A3;
-const int servoYPin = A5;
+const int servoXPin = A5;
+const int servoYPin = A3;
 
-const int joyXPin = A7;
-const int joyYPin = A6;
+const int joyXPin = A6;
+const int joyYPin = A7;
 
 const int center = 512;
-const int deadZone = 100;
+const int deadZone = 50;
 
 // 伺服馬達的基準角度
 const int baseAngleX = 90;
-const int baseAngleY = 90;
+const int baseAngleY = 95;
 
-// 限制在基準點正負 20 度
-const int swingAngle = 20;
+// 限制在基準點正負 10 度
+const int swingAngle = 10;
 
 const int minAngleX = baseAngleX - swingAngle;
 const int maxAngleX = baseAngleX + swingAngle;
@@ -30,10 +30,10 @@ float angleX = baseAngleX;
 float angleY = baseAngleY;
 
 // 最大轉動速度
-const float maxSpeed = 3;
+const float maxSpeed = 0.4;
 
 // 更新間隔，越大越慢
-const int moveDelay = 30;
+const int moveDelay = 20;
 
 void setup() {
   servoX.attach(servoXPin);
@@ -47,9 +47,11 @@ void setup() {
 }
 
 void loop() {
-  int joyX = analogRead(joyXPin);
-  int joyY = analogRead(joyYPin);
 
+  // 平均濾波使讀值較穩定
+  int joyX = (analogRead(joyXPin) + analogRead(joyXPin) + analogRead(joyXPin)) / 3;
+  int joyY = (analogRead(joyYPin) + analogRead(joyYPin) + analogRead(joyYPin)) / 3;
+  
   int offsetX = joyX - center;
   int offsetY = joyY - center;
 
@@ -65,9 +67,9 @@ void loop() {
   }
 
   angleX += speedX;
-  angleY += speedY;
+  angleY -= speedY;
 
-  // 角度限制在「伺服馬達基準點 ± 20 度」
+  // 角度限制在「伺服馬達基準點 ± 10 度」
   angleX = constrain(angleX, minAngleX, maxAngleX);
   angleY = constrain(angleY, minAngleY, maxAngleY);
 
