@@ -4,7 +4,7 @@ Servo servoX;
 Servo servoY;
 
 const int servoXPin = A3;
-const int servoYPin = A4;
+const int servoYPin = A5;
 
 const int joyXPin = A7;
 const int joyYPin = A6;
@@ -30,7 +30,7 @@ float angleX = baseAngleX;
 float angleY = baseAngleY;
 
 // 最大轉動速度
-const float maxSpeed = 1.5;
+const float maxSpeed = 3;
 
 // 更新間隔，越大越慢
 const int moveDelay = 30;
