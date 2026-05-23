@@ -3,63 +3,75 @@
 Servo servoX;
 Servo servoY;
 
-const int servoXPin = A3;
-const int servoYPin = A5;
+const int servoXPin = A5;
+const int servoYPin = A3;
 
-const int joyXPin = A7;
-const int joyYPin = A6;
+const int joyXPin = A6;
+const int joyYPin = A7;
 
 const int center = 512;
-const int deadZone = 100;
+const int deadZone = 50;
 
-const int homeAngle = 90;
-const int swingAngle = 20;
+// 伺服馬達的基準角度
+const int baseAngleX = 90;
+const int baseAngleY = 95;
 
-const int minAngle = homeAngle - swingAngle;  // 70
-const int maxAngle = homeAngle + swingAngle;  // 110
+// 限制在基準點正負 10 度
+const int swingAngle = 10;
 
-float angleX = homeAngle;
-float angleY = homeAngle;
+const int minAngleX = baseAngleX - swingAngle;
+const int maxAngleX = baseAngleX + swingAngle;
 
-// 最大轉動速度，數字越大轉越快
-const float maxSpeed = 1.5;
+const int minAngleY = baseAngleY - swingAngle;
+const int maxAngleY = baseAngleY + swingAngle;
 
-// 每次更新間隔，越大越慢
+// 目前伺服馬達角度
+float angleX = baseAngleX;
+float angleY = baseAngleY;
+
+// 最大轉動速度
+const float maxSpeed = 0.4;
+
+// 更新間隔，越大越慢
 const int moveDelay = 20;
 
 void setup() {
   servoX.attach(servoXPin);
   servoY.attach(servoYPin);
 
-  servoX.write(angleX);
-  servoY.write(angleY);
+  // 開機時先讓伺服馬達回到基準角
+  servoX.write(baseAngleX);
+  servoY.write(baseAngleY);
+
+  delay(500);
 }
 
 void loop() {
-  int joyX = analogRead(joyXPin);
-  int joyY = analogRead(joyYPin);
 
+  // 平均濾波使讀值較穩定
+  int joyX = (analogRead(joyXPin) + analogRead(joyXPin) + analogRead(joyXPin)) / 3;
+  int joyY = (analogRead(joyYPin) + analogRead(joyYPin) + analogRead(joyYPin)) / 3;
+  
   int offsetX = joyX - center;
   int offsetY = joyY - center;
 
   float speedX = 0;
   float speedY = 0;
 
-  // X 軸
   if (abs(offsetX) > deadZone) {
     speedX = map(offsetX, -512, 511, -maxSpeed * 100, maxSpeed * 100) / 100.0;
   }
 
-  // Y 軸
   if (abs(offsetY) > deadZone) {
     speedY = map(offsetY, -512, 511, -maxSpeed * 100, maxSpeed * 100) / 100.0;
   }
 
   angleX += speedX;
-  angleY += speedY;
+  angleY -= speedY;
 
-  angleX = constrain(angleX, minAngle, maxAngle);
-  angleY = constrain(angleY, minAngle, maxAngle);
+  // 角度限制在「伺服馬達基準點 ± 10 度」
+  angleX = constrain(angleX, minAngleX, maxAngleX);
+  angleY = constrain(angleY, minAngleY, maxAngleY);
 
   servoX.write((int)angleX);
   servoY.write((int)angleY);
