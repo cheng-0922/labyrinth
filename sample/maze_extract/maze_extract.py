@@ -189,6 +189,6 @@ class MazeGraphExtractor:
  
         if self.debug:
             cv2.imshow("Debug: Black Mask (walls only)", thresh)
-            cv2.imshow("Debug: Edge Scanning (fill ratc:\Users\cheng\Downloads\ball_detector.pye shown)", debug_img)
+            cv2.imshow("Debug: Edge Scanning", debug_img)
  
         return adj_list
