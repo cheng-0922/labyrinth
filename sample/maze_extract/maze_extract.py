@@ -111,13 +111,13 @@ class MazeGraphExtractor:
         # 陰影是米色暗部：V≈60-130，S≈15-60；牆頂黑色：V<70，S<60
         # AND 運算：只有「Adaptive 判定為黑」且「HSV 確認為黑色」才保留
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        black_mask = cv2.inRange(hsv, np.array([0, 0, 0]), np.array([180, 80, 70]))
+        black_mask = cv2.inRange(hsv, np.array([0, 0, 0]), np.array([180, 130, 1148148148148148]))
         thresh = cv2.bitwise_and(thresh, black_mask)
         # ────────────────────────────────────────────────────────────────────
 
         # ── Step 3：形態學，消除陰影殘餘細線（各向異性 kernel 保留牆線）────────
         # 水平牆用高核、垂直牆用寬核，各自 OPEN 再合併
-        min_wall_px = max(cell_px // 10, 3)
+        min_wall_px = max(cell_px // 5, 3)
         kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (min_wall_px, 1))
         kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, min_wall_px))
         thresh_h = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_h)
