@@ -83,9 +83,9 @@ if __name__ == "__main__":
                     print("\n🔍 掃描球的位置...")
                     if not warped_img:
                         warped_img, graph = extractor.process(frame)
-                    (x,y) = ball.findball(warped_img)
-                    print((x,y))
-                    break                        
+                    pos = ball.find_ball(warped_img)
+                    print(pos)
+                                            
                 elif key == ord('q'):
                     break
         finally:
