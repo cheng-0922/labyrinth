@@ -5,6 +5,7 @@ import cv2
 from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
+from ball_detector import BallDetector
 
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
@@ -15,6 +16,7 @@ if __name__ == "__main__":
 
     # 初始化萃取器，將 debug 狀態傳入
     extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.333, debug=args.debug)
+    ball = BallDetector(maze_size = 9, debug=args.debug)
 
     # --- 2. 靜態圖片模式 ---
     if args.image:
@@ -70,14 +72,20 @@ if __name__ == "__main__":
                 frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                 cv2.imshow("Camera Preview", frame)
                 key = cv2.waitKey(1) & 0xFF
-
+                warped_img = None
                 if key == ord('s'):
                     print("\n🔍 掃描中...")
                     warped_img, graph = extractor.process(frame)
                     if graph is not None:
                         cv2.imshow("Final Warped Maze", warped_img)
                         print("✅ 解析成功！可繼續掃描或按 'q' 離開")
-                                                
+                elif key == ord('f'):
+                    print("\n🔍 掃描球的位置...")
+                    if not warped_img:
+                        warped_img, graph = extractor.process(frame)
+                    (x,y) = ball.findball(warped_img)
+                    print((x,y))
+                    break                        
                 elif key == ord('q'):
                     break
         finally:
