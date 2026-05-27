@@ -43,6 +43,7 @@ if __name__ == "__main__":
                 start = (4,0)
                 end = (4,8)
                 nodelist = my_maze.BFS_2(my_maze.node_dict[(4,0)],my_maze.node_dict[(4,8)] )
+                my_maze.get_dict()
                 
 
             cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
