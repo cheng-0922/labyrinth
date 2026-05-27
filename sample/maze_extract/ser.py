@@ -17,16 +17,9 @@ def main():
     # Arduino reset 後需要約 2 秒才準備好接收
     time.sleep(2)
     ser.reset_input_buffer()
-
-    print("送出：PING")
-    ser.write(b"PING\n")
-
-    response = ser.readline().decode("utf-8", errors="replace").strip()
-    if response == "PONG":
-        print("✅ 通訊成功！收到：PONG")
-    else:
-        print(f"❌ 收到非預期回應：'{response}'")
-        print("請確認 Arduino 已燒錄 arduino_serial_test.ino")
+    ser.write(b'r')
+    time.sleep(3)
+    ser.write(b's')
 
     ser.close()
 
