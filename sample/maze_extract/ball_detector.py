@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
- 
+Lthres = 200
+
  
 class BallDetector:
     """
@@ -41,7 +42,7 @@ class BallDetector:
         gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
  
         # ── Step 1：高光閾值，球中心 L≈250，底板最亮 L≈210，門檻設 230 ────────
-        _, bright = cv2.threshold(gray, 230, 255, cv2.THRESH_BINARY)
+        _, bright = cv2.threshold(gray, Lthres, 255, cv2.THRESH_BINARY)
         # ────────────────────────────────────────────────────────────────────
  
         # ── Step 2：輪廓 + 圓形度過濾 ────────────────────────────────────────
