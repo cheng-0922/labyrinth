@@ -15,7 +15,7 @@ const int deadZone = 50;
 const int baseAngleX = 97;
 const int baseAngleY = 90;
 
-const int swingAngle = 10;
+const int swingAngle = 9;
 
 const int minAngleX = baseAngleX - swingAngle;
 const int maxAngleX = baseAngleX + swingAngle;
