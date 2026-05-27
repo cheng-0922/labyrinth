@@ -21,7 +21,6 @@ def main():
     time.sleep(3)
     ser.write(b's')
 
-    ser.close()
 
 if __name__ == "__main__":
     main()

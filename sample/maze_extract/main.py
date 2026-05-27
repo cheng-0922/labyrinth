@@ -81,10 +81,12 @@ if __name__ == "__main__":
                         print("✅ 解析成功！可繼續掃描或按 'q' 離開")
                 elif key == ord('f'):
                     print("\n🔍 掃描球的位置...")
-                    if not warped_img:
-                        warped_img, graph = extractor.process(frame)
-                    pos = ball.find_ball(warped_img)
-                    print(pos)
+                    warped_img, _ = extractor.process(frame)
+                    if warped_img is None:
+                        print("❌ 無法校正影像，請確認定位點可見")
+                    else:
+                        pos = ball.find_ball(warped_img)
+                        print(f"球的位置：{pos}") 
                                             
                 elif key == ord('q'):
                     break
