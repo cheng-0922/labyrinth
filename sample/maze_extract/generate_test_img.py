@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def convert_to_mdf_maze(input_img_path="maze.png", output_path="test_maze.jpg"):
+def convert_to_mdf_maze(input_img_path="maze_tem.png", output_path="test_maze.jpg"):
     print(f"🎨 正在讀取網站迷宮 {input_img_path} 並進行木板化...")
     
     maze_img = cv2.imread(input_img_path, cv2.IMREAD_GRAYSCALE)
