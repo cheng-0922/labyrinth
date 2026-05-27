@@ -29,20 +29,18 @@ float angleY = baseAngleY;
 const float maxSpeed = 0.4;
 const int moveDelay = 20;
 
+float filteredJoyX = center;
+float filteredJoyY = center;
+float filteredSpeedX = 0;
+float filteredSpeedY = 0;
+
+const float filterAlpha = 0.3;
+const float speedAlpha = 0.6;
+
 float joystickToSpeed(int offset) {
   if (abs(offset) <= deadZone) {
     return 0;
   }
-
-  /*
-  // Original method: speed increases linearly after leaving the dead zone.
-  int direction = offset > 0 ? 1 : -1;
-  int effectiveOffset = abs(offset) - deadZone;
-  int effectiveRange = 512 - deadZone;
-
-  float ratio = effectiveOffset / float(effectiveRange);
-  return direction * ratio * maxSpeed;
-  */
 
   int direction = offset > 0 ? 1 : -1;
   int effectiveOffset = abs(offset) - deadZone;
@@ -65,8 +63,17 @@ void setup() {
 }
 
 void loop() {
-  int joyX = (analogRead(joyXPin) + analogRead(joyXPin) + analogRead(joyXPin)) / 3;
-  int joyY = (analogRead(joyYPin) + analogRead(joyYPin) + analogRead(joyYPin)) / 3;
+  int rawJoyX = analogRead(joyXPin);
+  int rawJoyY = analogRead(joyYPin);
+
+  filteredJoyX = filteredJoyX + filterAlpha * (rawJoyX - filteredJoyX);
+  filteredJoyY = filteredJoyY + filterAlpha * (rawJoyY - filteredJoyY);
+
+  int joyX = filteredJoyX;
+  int joyY = filteredJoyY;
+
+  // int joyX = (analogRead(joyXPin) + analogRead(joyXPin) + analogRead(joyXPin)) / 3;
+  // int joyY = (analogRead(joyYPin) + analogRead(joyYPin) + analogRead(joyYPin)) / 3;
 
   int offsetX = joyX - center;
   int offsetY = joyY - center;
@@ -74,8 +81,11 @@ void loop() {
   float speedX = joystickToSpeed(offsetX);
   float speedY = joystickToSpeed(offsetY);
 
-  angleX += speedX;
-  angleY -= speedY;
+  filteredSpeedX = filteredSpeedX + speedAlpha * (speedX - filteredSpeedX);
+  filteredSpeedY = filteredSpeedY + speedAlpha * (speedY - filteredSpeedY);
+
+  angleX += filteredSpeedX;
+  angleY -= filteredSpeedY;
 
   angleX = constrain(angleX, minAngleX, maxAngleX);
   angleY = constrain(angleY, minAngleY, maxAngleY);
