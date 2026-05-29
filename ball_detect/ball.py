@@ -1,37 +1,31 @@
 import cv2
 import numpy as np
+import os
+
 
 
 class BallDetector:
     """
-    背景相減法偵測鋼珠。
-    使用流程：
-      1. 迷宮辨識完成後呼叫 set_reference(warped_img) 存背景
-      2. 放入彈珠後呼叫 find_ball(warped_img) 回傳 (row, col)
+    在 warped 迷宮影像中偵測 10mm 金屬鋼珠，回傳格子座標 (row, col)。
+
+    設計假設：
+    - 輸入是已透視校正的 warped 影像（迷宮填滿畫面）
+    - 路徑寬 15mm，球徑 10mm → 球約佔格寬的 10/15 ≈ 67%
+    - 金屬球特徵：有強烈高光亮點（亮白），整體比底板亮
+    - 迷宮最大傾斜 20 度，球不會跑到牆壁 ROI 上
     """
 
     def __init__(self, maze_size=9, debug=False):
         self.maze_size = maze_size
         self.debug = debug
-        self.ref_gray = None  # 空迷宮灰階參考影像
-
-    def set_reference(self, warped_img):
-        """存入空迷宮參考影像（放球前呼叫）"""
-        self.ref_gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
-        print("✅ 背景參考已設定")
 
     def find_ball(self, warped_img):
         """
-        背景相減找球，回傳 (row, col)，找不到回傳 None。
+        在 warped_img 中偵測鋼珠，回傳 (row, col)，找不到回傳 None。
 
-        原理：
-          diff = |當前灰階 - 空迷宮灰階|
-          球出現的位置差異大，牆壁/底板差異≈0
+        實測：球呈不完整環形（中央高光 V>130 被排除，邊緣 V<60 也被排除）
+        策略：放寬 V 範圍抓出更多環形像素，用凸包填實破碎輪廓，再用圓形度過濾
         """
-        if self.ref_gray is None:
-            print("❌ 尚未設定背景參考，請先按 's' 辨識迷宮")
-            return None
-
         h, w = warped_img.shape[:2]
         cell_h = h / self.maze_size
         cell_w = w / self.maze_size
@@ -41,27 +35,22 @@ class BallDetector:
         area_min = np.pi * (r_expected * 0.5) ** 2
         area_max = np.pi * (r_expected * 1.5) ** 2
 
-        # ── Step 1：背景相減，取差異遮罩 ─────────────────────────────────────
-        curr_gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
-        if curr_gray.shape != self.ref_gray.shape:
-            curr_gray = cv2.resize(
-                curr_gray,
-                (self.ref_gray.shape[1], self.ref_gray.shape[0])
-            )
-        diff = cv2.absdiff(curr_gray, self.ref_gray)
-        # 差異門檻：光線微小變化 < 20，球造成的差異 > 30
-        _, diff_mask = cv2.threshold(diff, 90, 255, cv2.THRESH_BINARY)
+        hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
+
+        # ── Step 1：放寬 V 範圍，盡量把環形的每一段都抓進來 ─────────────────
+        ball_mask = cv2.inRange(hsv,
+                                np.array([0,  0,  50]),
+                                np.array([180, 35, 160]))
         # ────────────────────────────────────────────────────────────────────
 
-        # ── Step 2：形態學，填補差異區域內的破洞並消除雜訊 ───────────────────
+        # ── Step 2：CLOSE 先把鄰近碎片黏合，再找輪廓取凸包 ──────────────────
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-        diff_mask = cv2.morphologyEx(diff_mask, cv2.MORPH_CLOSE, kernel)
-        diff_mask = cv2.morphologyEx(diff_mask, cv2.MORPH_OPEN,  kernel)
+        ball_mask = cv2.morphologyEx(ball_mask, cv2.MORPH_CLOSE, kernel)
+
+        contours, _ = cv2.findContours(ball_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # ────────────────────────────────────────────────────────────────────
 
-        # ── Step 3：凸包 + 面積 + 圓形度過濾 ────────────────────────────────
-        contours, _ = cv2.findContours(diff_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
+        # ── Step 3：凸包填實 + 圓形度過濾 ───────────────────────────────────
         best = None
         best_circularity = 0
 
@@ -91,7 +80,7 @@ class BallDetector:
 
         if best is None:
             if self.debug:
-                cv2.imshow("Debug: Diff Mask", diff_mask)
+                cv2.imshow("Debug: Ball Mask", ball_mask)
             return None
 
         cx, cy = best
@@ -104,8 +93,17 @@ class BallDetector:
             cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)
             cv2.putText(debug_img, f"({row},{col}) c={best_circularity:.2f}",
                         (cx + 5, cy - 5), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 255, 0), 2)
-            cv2.imshow("Debug: Diff", cv2.convertScaleAbs(diff, alpha=3))
-            cv2.imshow("Debug: Diff Mask", diff_mask)
+            cv2.imshow("Debug: Ball Mask", ball_mask)
             cv2.imshow("Debug: Ball Detection", debug_img)
 
         return (row, col)
+
+if __name__ == '__main__':
+    B = BallDetector(9,True)
+    root = os.getcwd()
+    imgPath = os.path.join(root, 'Images/Final27.05.2026.png')
+    img = cv2.imread(imgPath)
+    pos = B.find_ball(img)
+    cv2.waitKey(0) 
+    print(f"球的位置：{pos}") 
+    
