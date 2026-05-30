@@ -8,6 +8,7 @@ from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
 from ball_detector import BallDetector
+from ser import ArduinoSerial
 
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
@@ -71,34 +72,31 @@ if __name__ == "__main__":
             print("❌ 錯誤：找不到 picamera2 模組。若是使用一般電腦，請加上 -i 參數指定圖片測試。")
             sys.exit(1)
             print(f"開啟 {PORT} @ {BAUD} baud ...")
+        
         try:
-            ser = serial.Serial(PORT, BAUD, timeout=3)
-        except serial.SerialException as e:
-            print(f"❌ 無法開啟序列埠：{e}")
-            print("請確認 Arduino 已接上 USB，並執行：ls /dev/ttyACM*")
-
-        try:
+            arduino = ArduinoSerial(PORT, BAUD)
             while True:
                 # serial communication
-                response = ser.readline().decode("utf-8", errors = "replace").strip()
-                if response :
-                    print (response)
-                
+                msg = arduino.read()
+                if msg:
+                    print("Arduino:", msg)
+                # update camera
                 raw_frame = picam2.capture_array()
                 frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                 cv2.imshow("Camera Preview", frame)
                 key = cv2.waitKey(1) & 0xFF
                 warped_img = None
 
-                if key == ord(b'r'):
-                    ser.write(b'r')
-                elif key == ord(b'j'):
-                    ser.write(b'j')
+                if key == ord('r'):
+                    arduino.send("r")
+                elif key == ord('j'):
+                    arduino.send("j")
+
                 elif key == ord('t'):
-                    ser.write(b't')
-                    ser.write(b'10\n')
-                elif key == ord(b's'):
-                    ser.write(b's')
+                    arduino.send_line("10")
+
+                elif key == ord('e'):
+                    break
                 elif key == ord('m'):
                     print("\n🔍 掃描中...")
                     warped_img, graph = extractor.process(frame)
