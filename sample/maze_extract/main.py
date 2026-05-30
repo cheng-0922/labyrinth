@@ -23,7 +23,8 @@ if __name__ == "__main__":
     # 初始化萃取器，將 debug 狀態傳入
     extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.333, debug=args.debug)
     ball = BallDetector(maze_size = 9, debug=args.debug)
-
+    cmd_mode = False
+    cmd_buffer = ""
     # --- 2. 靜態圖片模式 ---
     if args.image:
         print(f"📷 正在讀取圖片: {args.image}")
@@ -91,13 +92,12 @@ if __name__ == "__main__":
                     arduino.send("r")
                 elif key == ord('j'):
                     arduino.send("j")
-
+                elif key == ord('q'):
+                    arduino.send("q")
+                
                 elif key == ord('t'):
                     arduino.send_line("10")
 
-                elif key == ord('q'):
-                    arduino.send("q")
-                    break
                 elif key == ord('m'):
                     print("\n🔍 掃描中...")
                     warped_img, graph = extractor.process(frame)
@@ -110,8 +110,31 @@ if __name__ == "__main__":
                         print("❌ 無法校正影像，請確認定位點可見")
                     else:
                         pos = ball.find_ball(warped_img)
-                        print(f"球的位置：{pos}")                            
-                elif key == ord('e'):
+                        print(f"球的位置：{pos}")       
+
+
+                # 進入命令模式
+                if key == ord(':'):
+                    cmd_mode = True
+                    cmd_buffer = ""
+                    print("PARAM MODE ON")
+
+                elif cmd_mode:
+                    # Enter
+                    if key == 13:  # Enter
+                        extractor.set_params(cmd_buffer)
+                        print("CMD:", cmd_buffer)
+                        cmd_mode = False
+
+                    # Backspace
+                    elif key == 8:
+                        cmd_buffer = cmd_buffer[:-1]
+
+                    else:
+                        cmd_buffer += chr(key)         
+
+                
+                if key == 27 :
                     break
         finally:
             picam2.stop()
