@@ -1,5 +1,7 @@
+
 import cv2
 import numpy as np
+
 
 def convert_to_mdf_maze(input_img_path="maze_tem.png", output_path="test_maze.jpg"):
     print(f"🎨 正在讀取網站迷宮 {input_img_path} 並進行木板化...")
@@ -30,7 +32,7 @@ def convert_to_mdf_maze(input_img_path="maze_tem.png", output_path="test_maze.jp
     # ==========================================
     # 【更新邏輯】：4 個紅色定位點正中心精準對齊頂點
     # ==========================================
-    red_color = (0, 0, 220)
+    red_color = (180, 220, 0)
     marker_radius = 15 # 半徑 25 小於單一網格的大小 (70)，因此紅點不會跨界干擾到通道
     
     # 直接畫在 (pad, pad) 也就是迷宮框線的正角落！
