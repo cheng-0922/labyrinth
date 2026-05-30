@@ -2,10 +2,15 @@
 import argparse
 import sys
 import cv2
+import serial
+import time
 from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
 from ball_detector import BallDetector
+
+PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
+BAUD = 9600
 
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
@@ -65,20 +70,40 @@ if __name__ == "__main__":
         except ImportError:
             print("❌ 錯誤：找不到 picamera2 模組。若是使用一般電腦，請加上 -i 參數指定圖片測試。")
             sys.exit(1)
+            print(f"開啟 {PORT} @ {BAUD} baud ...")
+        try:
+            ser = serial.Serial(PORT, BAUD, timeout=3)
+        except serial.SerialException as e:
+            print(f"❌ 無法開啟序列埠：{e}")
+            print("請確認 Arduino 已接上 USB，並執行：ls /dev/ttyACM*")
 
         try:
             while True:
+                # serial communication
+                response = ser.readline().decode("utf-8", errors = "replace").strip()
+                if response :
+                    print (response)
+                
                 raw_frame = picam2.capture_array()
                 frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                 cv2.imshow("Camera Preview", frame)
                 key = cv2.waitKey(1) & 0xFF
                 warped_img = None
+
+                print(f"command : (s-auto atart, r-reset, j- play in joystick, q:quit")
                 if key == ord('s'):
+                    ser.write(b's')
+                if key == ord(b'r'):
+                    ser.write(b'r')
+                if key == ord(b'j'):
+                    ser.write(b'j')
+                
+                elif key == ord('s'):
                     print("\n🔍 掃描中...")
                     warped_img, graph = extractor.process(frame)
                     if graph is not None:
                         cv2.imshow("Final Warped Maze", warped_img)
-                        print("✅ 解析成功！可繼續掃描或按 'q' 離開")
+                        ser.write(b's')
                 elif key == ord('f'):
                     print("\n🔍 掃描球的位置...")
                     warped_img, _ = extractor.process(frame)
@@ -89,6 +114,7 @@ if __name__ == "__main__":
                         print(f"球的位置：{pos}") 
                                             
                 elif key == ord('q'):
+                    ser.write(b'q')
                     break
         finally:
             picam2.stop()
