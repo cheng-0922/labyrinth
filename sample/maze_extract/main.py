@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
 
                 # 進入命令模式
-                if key == ord(':'):
+                if key == ord(';'):
                     cmd_mode = True
                     cmd_buffer = ""
                     print("PARAM MODE ON")
