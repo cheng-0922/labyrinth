@@ -111,6 +111,8 @@ if __name__ == "__main__":
                                             
                 elif key == ord('q'):
                     ser.write(b'q')
+
+                elif key == ord('e'):
                     break
         finally:
             picam2.stop()
