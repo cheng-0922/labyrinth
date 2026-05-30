@@ -14,10 +14,18 @@ from ser import ArduinoSerial
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
 
-def cmd_loop(extractor):
+def cmd_loop(state,extractor,arduino):
     while True:
         cmd = input(">> ")
-        extractor.set_params(cmd)
+        if state == 0:
+            if cmd ==':':
+                state = 0
+            #start auto
+            else : arduino.send(cmd)
+        if state == 1:
+            if cmd =='q':
+                state = 0
+            else : extractor.set_params(cmd)
 
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
@@ -26,12 +34,13 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug", action="store_true", help="開啟除錯視窗")
     args = parser.parse_args()
 
-    # 初始化萃取器，將 debug 狀態傳入
+    # ---  ---
     extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.333, debug=args.debug)
     ball = BallDetector(maze_size = 9, debug=args.debug)
-    cmd_mode = False
-    cmd_buffer = ""
-    threading.Thread(target=cmd_loop, args=(extractor,), daemon=True).start()
+    arduino = ArduinoSerial(PORT, BAUD)
+    state = 1
+    threading.Thread(target=cmd_loop, args=(state,extractor,arduino,), daemon=True).start()
+
     # --- 2. 靜態圖片模式 ---
     if args.image:
         print(f"📷 正在讀取圖片: {args.image}")
@@ -48,13 +57,13 @@ if __name__ == "__main__":
             cv2.imshow("Final Warped Maze", warped_img)
             print("✅ 迷宮解析完成！(按任意鍵關閉)")
             if raw_graph is not None:
-                # 2. 實例化你自己的 Maze 類別
+                # 2.  Maze 
                 my_maze = Maze()
                 
-                # 3. 把 tuple 字典餵給新寫的 load_from_graph 函式
+                # 3. 把 tuple 放入 load_from_graph 函式
                 my_maze.load_from_graph(raw_graph)
 
-                # 測試一下轉換結果：印出起點 所有
+                # 測試轉換結果
                 for i in my_maze.nodes:
                     i.printparam()
                 
@@ -82,7 +91,7 @@ if __name__ == "__main__":
             print(f"開啟 {PORT} @ {BAUD} baud ...")
         
         try:
-            arduino = ArduinoSerial(PORT, BAUD)
+            
             while True:
                 # serial communication
                 msg = arduino.read()
@@ -120,25 +129,6 @@ if __name__ == "__main__":
                         print(f"球的位置：{pos}")       
 
 
-                # 進入命令模式
-                if key == ord(';'):
-                    cmd_mode = True
-                    cmd_buffer = ""
-                    print("PARAM MODE ON")
-
-                elif cmd_mode:
-                    # Enter
-                    if key == 13:  # Enter
-                        extractor.set_params(cmd_buffer)
-                        print("CMD:", cmd_buffer)
-                        cmd_mode = False
-
-                    # Backspace
-                    elif key == 8:
-                        cmd_buffer = cmd_buffer[:-1]
-
-                    else:
-                        cmd_buffer += chr(key)         
 
                 
                 if key == 27 :
