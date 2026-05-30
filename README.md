@@ -1,4 +1,39 @@
 # labyrinth
+
+### usage
+```bash
+
+cd ./project/src
+
+## no debug
+
+python main.py 
+
+## debug
+
+python main.py --d
+
+## terminal
+## mode 0
+>> 'r' : RESET
+
+>> 's' : START ...
+
+>> 'j' : JOY
+
+>> 'q' : quit
+
+>> ':': swithch to mode1
+
+## mode 1
+>> w = 0.25 : set parameter in extractor
+
+>> q : switch to mode 0
+
+
+
+```
+
 ### initial sets
 ```bash
 sudo apt install python3-opencv -y
