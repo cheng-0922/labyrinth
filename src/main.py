@@ -67,12 +67,6 @@ if __name__ == "__main__":
                 for i in my_maze.nodes:
                     i.printparam()
                 
-<<<<<<< HEAD
-                start = (4,0)
-                end = (4,8)
-                nodelist = my_maze.BFS_2(my_maze.node_dict[(4,0)],my_maze.node_dict[(4,8)] )
-                my_maze.get_dict()
-=======
                 start = (0,4)
                 end = (8,4)
                 nodelist = my_maze.BFS_2(my_maze.node_dict[start],my_maze.node_dict[end] )
@@ -83,7 +77,6 @@ if __name__ == "__main__":
                     if i.get_index() != end:
                         path.append(my_maze.getDirection(my_maze.node_dict[nodelist[nodelist.index(i)].get_index()], my_maze.node_dict[nodelist[nodelist.index(i)+1].get_index()]))
                 print([int(x) for x in path])
->>>>>>> 328eafbfd1734705200592a6b32ef3b1c75074ee
                 
             cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
         cv2.destroyAllWindows()
