@@ -90,14 +90,10 @@ if __name__ == "__main__":
                 key = cv2.waitKey(1) & 0xFF
                 warped_img = None
 
-                print(f"command : (s-auto atart, r-reset, j- play in joystick, q:quit")
-                if key == ord('s'):
-                    ser.write(b's')
                 if key == ord(b'r'):
                     ser.write(b'r')
-                if key == ord(b'j'):
+                elif key == ord(b'j'):
                     ser.write(b'j')
-                
                 elif key == ord('s'):
                     print("\n🔍 掃描中...")
                     warped_img, graph = extractor.process(frame)
