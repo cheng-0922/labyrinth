@@ -3,35 +3,63 @@ import numpy as np
 
 
 class BallDetector:
-    """
-    背景相減法偵測鋼珠。
-    使用流程：
-      1. 迷宮辨識完成後呼叫 set_reference(warped_img) 存背景
-      2. 放入彈珠後呼叫 find_ball(warped_img) 回傳 (row, col)
-    """
 
     def __init__(self, maze_size=9, debug=False):
         self.maze_size = maze_size
         self.debug = debug
-        self.ref_gray = None  # 空迷宮灰階參考影像
+        self.ref_gray = None
 
     def set_reference(self, warped_img):
-        """存入空迷宮參考影像（放球前呼叫）"""
+        """存入空迷宮參考影像（背景相減模式用）"""
         self.ref_gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
         print("✅ 背景參考已設定")
 
     def find_ball(self, warped_img):
         """
-        背景相減找球，回傳 (row, col)，找不到回傳 None。
-
-        原理：
-          diff = |當前灰階 - 空迷宮灰階|
-          球出現的位置差異大，牆壁/底板差異≈0
+        HSV 紅色遮罩找球，回傳 (row, col)，找不到回傳 None。
+        假設迷宮中只有球是紅色，直接取遮罩重心。
         """
-        if self.ref_gray is None:
-            print("❌ 尚未設定背景參考，請先按 's' 辨識迷宮")
+        h, w = warped_img.shape[:2]
+        cell_h = h / self.maze_size
+        cell_w = w / self.maze_size
+ 
+        # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
+        hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
+        mask1 = cv2.inRange(hsv, np.array([0,   100, 50]), np.array([10,  255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([170, 100, 50]), np.array([180, 255, 255]))
+        red_mask = cv2.bitwise_or(mask1, mask2)
+        # ────────────────────────────────────────────────────────────────────
+ 
+        # ── Step 2：取遮罩重心 ────────────────────────────────────────────────
+        M = cv2.moments(red_mask)
+        if M["m00"] == 0:
+            if self.debug:
+                cv2.imshow("Debug: Red Mask", red_mask)
             return None
+ 
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        # ────────────────────────────────────────────────────────────────────
+ 
+        row = max(0, min(int(cy / cell_h), self.maze_size - 1))
+        col = max(0, min(int(cx / cell_w), self.maze_size - 1))
+ 
+        if self.debug:
+            debug_img = warped_img.copy()
+            cv2.circle(debug_img, (cx, cy), 5, (0, 255, 0), -1)
+            cv2.putText(debug_img, f"({row},{col})",
+                        (cx + 5, cy - 5), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 255, 0), 2)
+            cv2.imshow("Debug: Red Mask", red_mask)
+            cv2.imshow("Debug: Ball Detection", debug_img)
+ 
+        return (row, col)
 
+    def find_ball_round(self, warped_img):
+        """
+        HSV 紅色遮罩找球，回傳 (row, col)，找不到回傳 None。
+
+        紅色在 HSV 分佈於兩段：H:0-10 和 H:170-180，需合併。
+        """
         h, w = warped_img.shape[:2]
         cell_h = h / self.maze_size
         cell_w = w / self.maze_size
@@ -41,26 +69,21 @@ class BallDetector:
         area_min = np.pi * (r_expected * 0.5) ** 2
         area_max = np.pi * (r_expected * 1.5) ** 2
 
-        # ── Step 1：背景相減，取差異遮罩 ─────────────────────────────────────
-        curr_gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
-        if curr_gray.shape != self.ref_gray.shape:
-            curr_gray = cv2.resize(
-                curr_gray,
-                (self.ref_gray.shape[1], self.ref_gray.shape[0])
-            )
-        diff = cv2.absdiff(curr_gray, self.ref_gray)
-        # 差異門檻：光線微小變化 < 20，球造成的差異 > 30
-        _, diff_mask = cv2.threshold(diff, 90, 255, cv2.THRESH_BINARY)
+        # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
+        hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
+        mask1 = cv2.inRange(hsv, np.array([0,   100, 50]), np.array([10,  255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([170, 100, 50]), np.array([180, 255, 255]))
+        red_mask = cv2.bitwise_or(mask1, mask2)
         # ────────────────────────────────────────────────────────────────────
 
-        # ── Step 2：形態學，填補差異區域內的破洞並消除雜訊 ───────────────────
+        # ── Step 2：形態學，填補球輪廓破洞 ───────────────────────────────────
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-        diff_mask = cv2.morphologyEx(diff_mask, cv2.MORPH_CLOSE, kernel)
-        diff_mask = cv2.morphologyEx(diff_mask, cv2.MORPH_OPEN,  kernel)
+        red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_CLOSE, kernel)
+        red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_OPEN,  kernel)
         # ────────────────────────────────────────────────────────────────────
 
         # ── Step 3：凸包 + 面積 + 圓形度過濾 ────────────────────────────────
-        contours, _ = cv2.findContours(diff_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         best = None
         best_circularity = 0
@@ -91,7 +114,7 @@ class BallDetector:
 
         if best is None:
             if self.debug:
-                cv2.imshow("Debug: Diff Mask", diff_mask)
+                cv2.imshow("Debug: Red Mask", red_mask)
             return None
 
         cx, cy = best
@@ -104,8 +127,7 @@ class BallDetector:
             cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)
             cv2.putText(debug_img, f"({row},{col}) c={best_circularity:.2f}",
                         (cx + 5, cy - 5), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 255, 0), 2)
-            cv2.imshow("Debug: Diff", cv2.convertScaleAbs(diff, alpha=3))
-            cv2.imshow("Debug: Diff Mask", diff_mask)
+            cv2.imshow("Debug: Red Mask", red_mask)
             cv2.imshow("Debug: Ball Detection", debug_img)
 
         return (row, col)
