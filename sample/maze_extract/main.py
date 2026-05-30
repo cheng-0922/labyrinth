@@ -4,6 +4,7 @@ import sys
 import cv2
 import serial
 import time
+import threading
 from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
@@ -12,6 +13,11 @@ from ser import ArduinoSerial
 
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
+
+def cmd_loop(extractor):
+    while True:
+        cmd = input(">> ")
+        extractor.set_params(cmd)
 
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
@@ -25,6 +31,7 @@ if __name__ == "__main__":
     ball = BallDetector(maze_size = 9, debug=args.debug)
     cmd_mode = False
     cmd_buffer = ""
+    threading.Thread(target=cmd_loop, args=(extractor,), daemon=True).start()
     # --- 2. 靜態圖片模式 ---
     if args.image:
         print(f"📷 正在讀取圖片: {args.image}")
@@ -87,7 +94,7 @@ if __name__ == "__main__":
                 cv2.imshow("Camera Preview", frame)
                 key = cv2.waitKey(1) & 0xFF
                 warped_img = None
-
+                
                 if key == ord('r'):
                     arduino.send("r")
                 elif key == ord('j'):
