@@ -63,7 +63,7 @@ if __name__ == "__main__":
                 # 3. 把 tuple 放入 load_from_graph 函式
                 my_maze.load_from_graph(raw_graph)
 
-                # 測試轉換結果
+                # 測試一下轉換結果：印出起點 所有
                 for i in my_maze.nodes:
                     i.printparam()
                 
@@ -72,8 +72,12 @@ if __name__ == "__main__":
                 nodelist = my_maze.BFS_2(my_maze.node_dict[start],my_maze.node_dict[end] )
                 for i in nodelist:
                     print(i.get_index())
-                print(my_maze.actions_to_str(my_maze.getActions(nodelist)))
-
+                path=[]
+                for i in nodelist:
+                    if i.get_index() != end:
+                        path.append(my_maze.getDirection(my_maze.node_dict[nodelist[nodelist.index(i)].get_index()], my_maze.node_dict[nodelist[nodelist.index(i)+1].get_index()]))
+                print([int(x) for x in path])
+                
             cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
         cv2.destroyAllWindows()
 

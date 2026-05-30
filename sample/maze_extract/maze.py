@@ -152,7 +152,9 @@ class Maze:
 
         return path
     
-
+    def getDirection(self, node_from: Node, node_to: Node):
+        return node_from.get_direction(node_to)
+    
     def getAction(self, car_dir, node_from: Node, node_to: Node):
         # TODO : get the car action
         # Tips : return an action and the next direction of the car if the node_to is the Successor of node_to
