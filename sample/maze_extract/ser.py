@@ -19,7 +19,16 @@ def main():
     ser.reset_input_buffer()
     ser.write(b'r')
     time.sleep(3)
-    ser.write(b's')
+    while True:
+        response = ser.readline().decode("utf-8", errors = "replace").strip()
+        if response :
+            print (response)
+        cmd = input("command : (s-auto atart, r-reset, j- play in joystick, q:quit")
+        if len(cmd)==1:
+            ser.write(b'{cmd}')
+        
+        
+
 
 
 if __name__ == "__main__":
