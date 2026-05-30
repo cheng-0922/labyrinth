@@ -94,12 +94,16 @@ if __name__ == "__main__":
                     ser.write(b'r')
                 elif key == ord(b'j'):
                     ser.write(b'j')
-                elif key == ord('s'):
+                elif key == ord('t'):
+                    ser.write(b't')
+                    ser.write(b'10\n')
+                elif key == ord(b's'):
+                    ser.write(b's')
+                elif key == ord('m'):
                     print("\n🔍 掃描中...")
                     warped_img, graph = extractor.process(frame)
                     if graph is not None:
                         cv2.imshow("Final Warped Maze", warped_img)
-                        ser.write(b's')
                 elif key == ord('f'):
                     print("\n🔍 掃描球的位置...")
                     warped_img, _ = extractor.process(frame)
@@ -107,11 +111,9 @@ if __name__ == "__main__":
                         print("❌ 無法校正影像，請確認定位點可見")
                     else:
                         pos = ball.find_ball(warped_img)
-                        print(f"球的位置：{pos}") 
-                                            
+                        print(f"球的位置：{pos}")                            
                 elif key == ord('q'):
                     ser.write(b'q')
-
                 elif key == ord('e'):
                     break
         finally:
