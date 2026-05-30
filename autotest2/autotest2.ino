@@ -14,35 +14,42 @@ void loop() {
   if(Serial.available()){
     char cmd = Serial.read();
     if(cmd=='r'){
-      servoX.write(baseAngleX);
-      servoY.write(baseAngleY);
+      reset();
       Serial.println("RESET");
       delay(500);  
     }
     if(cmd=='s')
     {
-      servoX.write(baseAngleX);
-      servoY.write(baseAngleY);
+      reset();
       delay(100);
       Serial.println("START");
       Serial.print(pathLen);
       for (int i = 0; i < pathLen; i++) {
         moveStep(testPath[path[i]].dirX,testPath[path[i]].dirY);
-        Serial.print("ACK ");
+        Serial.print("STEP:");
         Serial.print(testPath[i].dirX);
         Serial.print(",");
         Serial.print(testPath[i].dirY);
       }
       Serial.println("DONE");
     }
+    if(cmd=='t'){
+      if(Serial.available()>0){
+        String msg = Serial.readStringUntil('\n');
+        msg.trim();
+        int stepAngle = msg.toInt();
+        Serial.println("stepangle:");
+        Serial.print(stepAngle);
+      }
+    }
     if(cmd=='j'){
       Serial.println("JOY");
-      joyControl();
+      reset();
       while(true){
         joyControl();
         if(cmd=='q'){
-          servoX.write(baseAngleX);
-          servoY.write(baseAngleY);
+          Serial.println("QUIT JOY");
+          reset();
           break;
         }
       }

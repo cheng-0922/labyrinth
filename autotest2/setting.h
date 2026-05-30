@@ -94,8 +94,13 @@ const int DIR_RIGHT    = 1;
 const int DIR_STEADY   = 2;
 const int DIR_RESET    = 3;
 
-const int stepAngle = 7;    // 最終傾斜幅度
+// const int stepAngle = 7;    // 最終傾斜幅度
 const int stepDelay = 600;  // 傾斜停留時間
+
+void reset(){
+  servoX.write(baseAngleX);
+  servoY.write(baseAngleY);
+};
 
 void smoothWrite(Servo &servo, int current, int target, int smoothDelay = 30, int increment = 1) {
   if (current == target) return;
@@ -110,7 +115,7 @@ void smoothWrite(Servo &servo, int current, int target, int smoothDelay = 30, in
 static int currentAngleX = baseAngleX;
 static int currentAngleY = baseAngleY;
 
-void moveStep(int dirX, int dirY) {
+void moveStep(int dirX, int dirY,int stepAngle=7) {
   int targetX = baseAngleX;
   int targetY = baseAngleY;
   static int lastAngleX = baseAngleX;
