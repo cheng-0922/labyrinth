@@ -3,36 +3,112 @@ import numpy as np
 
 
 class MazeGraphExtractor:
-    def __init__(self, maze_size=9, wall_threshold=0.45, blur_kernel=5, debug=False):
+    def __init__(self, maze_size=9, wall_threshold=0.45, debug=False):
+        
         self.maze_size = maze_size
-        self.wall_threshold = wall_threshold
-        self.blur_kernel = blur_kernel
-        self.debug = debug  # 新增 Debug 開關
+        self.debug = debug  
         self.M = None       
         self.warp_dim = None
+        # ROI 參數
+        # wall_threshold: 牆壁面積占比閾值
+        # inset_ratio：只掃中段 
+        # wall_thickness：ROI 寬度設為實體牆寬的倍數
+        # black_v_max : HSV 黑色遮罩
+        self.params = {
+            "wall_threshold": wall_threshold,
+            "inset_ratio": 0.30,
+            "thickness_ratio": 0.12,
+            "contrast_alpha": 1.7,
+            "black_v_max": 130,
+            "adaptive_C": 4,
+            "lower_green" : 75,
+            "upper_green" : 95,
+            "saturation" : 100
+        }
+
+        self.param_alias = {
+            "w": "wall_threshold",
+            "wall": "wall_threshold",
+
+            "i": "inset_ratio",
+            "inset": "inset_ratio",
+
+            "t": "thickness_ratio",
+            "thick": "thickness_ratio",
+
+            "c": "contrast_alpha",
+            "contrast": "contrast_alpha",
+
+            "g" : "lower_green" ,
+            "lowerG" : "lower_green",
+            "G" : "upper_greean",
+            "upperG" : "upper_greean",
+
+            "s" : "saturation"
+        }
 
     def process(self, img):
         pts = self._find_green_markers(img)
         if pts is None:
-            print("❌ 無法在畫面中找到足夠的紅色定位塊")
+            print("無法在畫面中找到足夠的綠色定位塊")
             return None, None
 
         warped_img = self._four_point_transform(img, pts)
-        
-        # 直接從影像中掃描「牆壁交界處」，建構出圖論的 Adjacency List
-        adjacency_list = self._extract_graph(warped_img)
+        thresh_img = self._extract_graph(warped_img)
+        adjacency_list =self._build_maze(thresh_img)
 
+        print("轉換成功")
         return warped_img, adjacency_list
+    
+    def get_params(self):
+        print(self.params)
+
+    def set_params(self, cmd: str):
+        """
+        支援：
+        - w=0.45
+        - w 0.45
+        - wall=0.45 inset=0.3
+        - d (切換 debug 模式)
+        """
+        cmd = cmd.strip()
+        
+        # 處理單獨的 debug 切換指令
+        if cmd == "d":
+            self.debug = not self.debug
+            print(f"Debug mode: {'ON' if self.debug else 'OFF'}")
+            return
+
+        # 把 "=" 統一換成空格，統一格式，例如 "w=0.45 i 0.3" -> "w 0.45 i 0.3"
+        normalized_cmd = cmd.replace("=", " ")
+        tokens = normalized_cmd.split()
+
+        # 兩兩一組進行解析 (key, value)
+        for i in range(0, len(tokens) - 1, 2):
+            k = tokens[i]
+            v_str = tokens[i+1]
+
+            key = self.param_alias.get(k, k)
+
+            if key not in self.params:
+                print(f"Unknown param: {key}")
+                continue
+
+            try:
+                v = float(v_str)
+                self.params[key] = v
+                print(f"[{key}] -> {v}")
+            except ValueError:
+                print(f"Invalid value for {key}: {v_str}")
 
     def _find_green_markers(self, img):
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         
-        # 🌟 綠色的 HSV 範圍 (通常 Hue 在 40 到 80 之間)
+        # 綠色的 HSV 範圍 (通常 Hue 在 40 到 80 之間)
         # 調整 S (飽和度) 和 V (亮度) 的下限以排除雜訊
-        lower_green = np.array([75, 100, 100])
-        upper_green = np.array([95, 255, 255])
+        lower_green = np.array([self.params["lower_green"], self.params["saturation"], 100])
+        upper_green = np.array([self.params["upper_green"], 255, 255])
         
-        # 綠色不需要拼接，一個 mask 即可
         green_mask = cv2.inRange(hsv, lower_green, upper_green)
 
         contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -93,9 +169,9 @@ class MazeGraphExtractor:
         h, w = img.shape[:2]
         cell_px = int(min(h, w) / self.maze_size)
 
-        # ── Step 1：舊方法對比強化（完整保留）────────────────────────────────
+        # ── Step 1：對比強化────────────────────────────────
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        gray = cv2.convertScaleAbs(gray, alpha=1.7, beta=0)
+        gray = cv2.convertScaleAbs(gray, alpha=self.params["contrast_alpha"], beta=0)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
         block_size = max((cell_px // 2) | 1, 11)
@@ -103,15 +179,14 @@ class MazeGraphExtractor:
             enhanced, 255,
             cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv2.THRESH_BINARY_INV,
-            block_size, 4
+            block_size, self.params["adaptive_C"]
         )
-        # ────────────────────────────────────────────────────────────────────
 
-        # ── Step 2：HSV 黑色遮罩，在源頭排除陰影像素 ─────────────────────────
+        # ── Step 2：HSV 黑色遮罩，排除陰影像素 ─────────────────────────
         # 陰影是米色暗部：V≈60-130，S≈15-60；牆頂黑色：V<70，S<60
         # AND 運算：只有「Adaptive 判定為黑」且「HSV 確認為黑色」才保留
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        black_mask = cv2.inRange(hsv, np.array([0, 0, 0]), np.array([180, 130, 1148148148148148]))
+        black_mask = cv2.inRange(hsv, np.array([0, 0, 0]), np.array([180, self.params["black_v_max"], 255]))
         thresh = cv2.bitwise_and(thresh, black_mask)
         # ────────────────────────────────────────────────────────────────────
 
@@ -123,12 +198,19 @@ class MazeGraphExtractor:
         thresh_h = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_h)
         thresh_v = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_v)
         thresh = cv2.bitwise_or(thresh_h, thresh_v)
-        # ────────────────────────────────────────────────────────────────────
 
+        if self.debug:
+            cv2.imshow("Debug: CLAHE", enhanced)
+            cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
+        
+        return thresh
+    
+    def _build_maze(self, thresh):
         # ── 修正 3：改用 round() 計算格子邊界，消除 int() 截斷累積誤差 ────
+        h, w = thresh.shape[:2]
         cell_h = h / self.maze_size
         cell_w = w / self.maze_size
-
+        # ────────────────────────────────────────────────────────────────────
         def cell_edge(idx, cell_size):
             """計算第 idx 條格線的像素座標（四捨五入）"""
             return round(idx * cell_size)
@@ -136,29 +218,20 @@ class MazeGraphExtractor:
 
         adj_list = {(r, c): [] for r in range(self.maze_size) for c in range(self.maze_size)}
 
-        # ROI 參數
-        # inset：避開十字路口墨水暈開，只掃中段 60%
-        inset_ratio = 0.30
-        # wall_thickness：ROI 寬度設為實體牆寬的 1.2 倍，確保完整覆蓋
-        # 3mm 牆 / 16.7mm 格 = 18%，× 1.2 = 22%，取單側 11%
-        thickness_ratio = 0.12  ##0.11
-
-        wall_thickness_x = max(round(cell_w * thickness_ratio), 1)
-        wall_thickness_y = max(round(cell_h * thickness_ratio), 1)
-        inset_x = round(cell_w * inset_ratio)
-        inset_y = round(cell_h * inset_ratio)
+        wall_thickness_x = max(round(cell_w * self.params["thickness_ratio"]), 1)
+        wall_thickness_y = max(round(cell_h * self.params["thickness_ratio"]), 1)
+        inset_x = round(cell_w * self.params["inset_ratio"])
+        inset_y = round(cell_h * self.params["inset_ratio"])
 
         debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR) if self.debug else None
 
         def check_wall(roi, label, debug_img, x1, y1, x2, y2):
-            """
-            判斷 ROI 是否含有牆壁。
-            修正 2：threshold 使用 self.wall_threshold（建議設 0.45）
-            """
+            
+            #判斷 ROI 是否含有牆壁。
             if roi.size == 0:
                 return False  # 空 ROI 視為無牆（邊界安全保護）
             fill = cv2.countNonZero(roi) / roi.size
-            is_wall = fill >= self.wall_threshold
+            is_wall = fill >= self.params["wall_threshold"]
             if self.debug and debug_img is not None:
                 color = (0, 0, 255) if is_wall else (0, 255, 0)
                 cv2.rectangle(debug_img, (x1, y1), (x2, y2), color, -1)
@@ -203,8 +276,7 @@ class MazeGraphExtractor:
                     adj_list[(r + 1, c)].append((r, c))
 
         if self.debug:
-            cv2.imshow("Debug: CLAHE", enhanced)
-            cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
+            
             cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
             cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
 

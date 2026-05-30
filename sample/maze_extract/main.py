@@ -95,7 +95,8 @@ if __name__ == "__main__":
                 elif key == ord('t'):
                     arduino.send_line("10")
 
-                elif key == ord('e'):
+                elif key == ord('q'):
+                    arduino.send("q")
                     break
                 elif key == ord('m'):
                     print("\n🔍 掃描中...")
@@ -110,8 +111,6 @@ if __name__ == "__main__":
                     else:
                         pos = ball.find_ball(warped_img)
                         print(f"球的位置：{pos}")                            
-                elif key == ord('q'):
-                    ser.write(b'q')
                 elif key == ord('e'):
                     break
         finally:
