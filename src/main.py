@@ -38,6 +38,25 @@ def cmd_loop(state,extractor,arduino):
                 state = 0
             else : extractor.set_params(cmd)
 
+def send_angle(arduino, direction: int, delay_time: int):
+
+    try:
+        # 1. 告訴 Arduino 我們要進入 TEST ANGLE 模式 ('s')
+        arduino.send('s')
+        time.sleep(0.05)  # 微小延遲，確保 Arduino 狀態機已切換
+        
+        # 2. 傳送方向 (記得轉型成字串，Arduino 才能用 readStringUntil 讀取)
+        arduino.send_line(str(direction))
+        
+        # 3. 傳送延遲時間
+        arduino.send_line(str(delay_time))
+        
+        print(f"➡️ 已發送控制訊號 - 方向: {direction}, 延遲: {delay_time} ms")
+        
+    except Exception as e:
+        print(f"❌ 傳送角度控制訊號失敗: {e}")
+
+
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
     parser = argparse.ArgumentParser(description="Maze Scanner")
@@ -125,10 +144,18 @@ if __name__ == "__main__":
                     arduino.send("j")
                 elif key == ord('q'):
                     arduino.send("q")
-                
+                elif key == ord('s'):
+                    m = Maze()
+                    warped_img, graph = extractor.process(frame)
+                    if graph is not None:
+                        cv2.imshow("Final Warped Maze", warped_img)
+                    
+                    send_angle(arduino, 1,1000)
+                    send_angle(arduino, 2,1000)
+                    send_angle(arduino, 3,1000)
+                    send_angle(arduino, 4,1000)
                 elif key == ord('t'):
-                    arduino.send_line("10")
-
+                    arduino.send("t")
                 elif key == ord('m'):
                     with Timer():
                         print("\n🔍 掃描中...")
