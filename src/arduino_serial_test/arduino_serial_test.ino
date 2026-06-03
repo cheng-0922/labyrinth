@@ -35,7 +35,7 @@ void loop() {
     // START PATH
     // ======================
 
-    if (cmd == 's') {
+    if (cmd == 't') {
       reset();
       delay(100);
       Serial.println("START");
@@ -61,20 +61,28 @@ void loop() {
     // TEST ANGLE
     // ======================
 
-    if (cmd == 't') {
-      String msg =
-        Serial.readStringUntil('\n');
-      msg.trim();
+    if (cmd == 's') {
+      while(true){
+        if(cmd='q'){
+          Serial.println("QUIT AUTO");
+          reset();
+          break;
+        }
+        String msg_dir =Serial.readStringUntil('\n');
+        msg.trim();
+        int dir = msg.toInt();
+        Serial.print("DIR:");
+        Serial.println(dir);
 
-      int stepAngle = msg.toInt();
-
-      Serial.print("STEPANGLE:");
-      Serial.println(stepAngle);
-
+        String msg_delay =Serial.readStringUntil('\n');
+        msg.trim();
+        int stepDelay = msg.toInt();
+        Serial.print("DELAYTIME:");
+        Serial.println(stepDelay);
+        moveStep(testPath[dir].dirX,testPath[dir].dirY,stepDelay);
+      }
       continue;
     }
-    if (cmd == ''
-
     // ======================
     // JOYSTICK MODE
     // ======================
