@@ -10,6 +10,17 @@ from node import Node
 from maze_extract import MazeGraphExtractor 
 from ball_detector import BallDetector
 from ser import ArduinoSerial
+class Timer:
+    def __enter__(self):
+        # 當進入 with 區塊時，記錄開始時間
+        self.start_time = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # 當離開 with 區塊時，計算並印出花費時間
+        self.end_time = time.perf_counter()
+        self.elapsed_time = self.end_time - self.start_time
+        print(f"執行耗時: {self.elapsed_time:.6f} 秒")
 
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
@@ -119,18 +130,20 @@ if __name__ == "__main__":
                     arduino.send_line("10")
 
                 elif key == ord('m'):
-                    print("\n🔍 掃描中...")
-                    warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        cv2.imshow("Final Warped Maze", warped_img)
+                    with Timer():
+                        print("\n🔍 掃描中...")
+                        warped_img, graph = extractor.process(frame)
+                        if graph is not None:
+                            cv2.imshow("Final Warped Maze", warped_img)
                 elif key == ord('f'):
-                    print("\n🔍 掃描球的位置...")
-                    warped_img, _ = extractor.process(frame)
-                    if warped_img is None:
-                        print("❌ 無法校正影像，請確認定位點可見")
-                    else:
-                        pos = ball.find_ball(warped_img)
-                        print(f"球的位置：{pos}")       
+                    with Timer():
+                        print("\n🔍 掃描球的位置...")
+                        warped_img, _ = extractor.process(frame)
+                        if warped_img is None:
+                            print("❌ 無法校正影像，請確認定位點可見")
+                        else:
+                            pos = ball.find_ball(warped_img)
+                            print(f"球的位置：{pos}")       
 
 
 
