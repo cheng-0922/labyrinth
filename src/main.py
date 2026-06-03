@@ -194,7 +194,7 @@ if __name__ == "__main__":
                         time.sleep(0.1)
                         
                         end = (8, 8)
-                        kp, ki, kd = 1.5, 0.05, 0.3
+                        kp, ki, kd = 0.15, 0.05, 0.03
                         prev_err_x, prev_err_y = 0.0, 0.0
                         integral_x, integral_y = 0.0, 0.0
                         
@@ -250,7 +250,7 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                angle_x = int(np.clip(output_x, -15, 15))
+                                angle_x = -int(np.clip(output_x, -15, 15))
                                 angle_y = int(np.clip(output_y, -15, 15))
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
