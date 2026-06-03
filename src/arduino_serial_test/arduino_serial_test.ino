@@ -94,6 +94,7 @@ void loop() {
         if (c == 'q') {
           Serial.println("QUIT JOY");
           reset();
+          cmd='r';
           break;
         }
       }
