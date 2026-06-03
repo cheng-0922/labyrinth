@@ -53,7 +53,28 @@ class BallDetector:
             cv2.imshow("Debug: Ball Detection", debug_img)
  
         return (row, col)
-
+    def get_ball_pixel_position(self, warped_img):
+        h, w = warped_img.shape[:2]
+        cell_h = h / self.maze_size
+        cell_w = w / self.maze_size
+ 
+        # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
+        hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
+        mask1 = cv2.inRange(hsv, np.array([0,   100, 50]), np.array([10,  255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([170, 100, 50]), np.array([180, 255, 255]))
+        red_mask = cv2.bitwise_or(mask1, mask2)
+        # ────────────────────────────────────────────────────────────────────
+ 
+        # ── Step 2：取遮罩重心 ────────────────────────────────────────────────
+        M = cv2.moments(red_mask)
+        if M["m00"] == 0:
+            if self.debug:
+                cv2.imshow("Debug: Red Mask", red_mask)
+            return None
+ 
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        return (cx,cy)
     def find_ball_round(self, warped_img):
         """
         HSV 紅色遮罩找球，回傳 (row, col)，找不到回傳 None。
