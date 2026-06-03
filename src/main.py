@@ -38,23 +38,16 @@ def cmd_loop(state,extractor,arduino):
                 state = 0
             else : extractor.set_params(cmd)
 
-def send_angle(arduino, direction: int, delay_time: int):
+def send_time(arduino, direction: int, delay_time: int):
 
-    try:
-        # 1. 告訴 Arduino 我們要進入 TEST ANGLE 模式 ('s')
-        arduino.send('s')
-        time.sleep(0.05)  # 微小延遲，確保 Arduino 狀態機已切換
-        
-        # 2. 傳送方向 (記得轉型成字串，Arduino 才能用 readStringUntil 讀取)
+    try:        
         arduino.send_line(str(direction))
-        
-        # 3. 傳送延遲時間
         arduino.send_line(str(delay_time))
         
-        print(f"➡️ 已發送控制訊號 - 方向: {direction}, 延遲: {delay_time} ms")
+        print(f" 已發送控制訊號 - 方向: {direction}, 延遲: {delay_time} ms")
         
     except Exception as e:
-        print(f"❌ 傳送角度控制訊號失敗: {e}")
+        print(f" 傳送角度控制訊號失敗: {e}")
 
 
 if __name__ == "__main__":
@@ -145,15 +138,96 @@ if __name__ == "__main__":
                 elif key == ord('q'):
                     arduino.send("q")
                 elif key == ord('s'):
+            
                     m = Maze()
                     warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        cv2.imshow("Final Warped Maze", warped_img)
+                    if graph is None:
+                        continue
+                    m.load_from_graph(graph)
                     
-                    send_angle(arduino, 1,1000)
-                    send_angle(arduino, 2,1000)
-                    send_angle(arduino, 3,1000)
-                    send_angle(arduino, 4,1000)
+                    arduino.send('s') 
+                    time.sleep(0.1) 
+                    
+                    end = (8, 8)
+                    step_delay = 800 
+                    
+                    while True:
+                        raw_frame = picam2.capture_array()
+                        frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                        cv2.imshow("Camera Preview", frame)
+                        cv2.waitKey(1)
+                        
+                        warped_img, _ = extractor.process(frame)
+                        if warped_img is None:
+                            continue
+                            
+                        now = ball.find_ball(warped_img)
+                        
+                        if now == end:
+                            print(f"🏁 Goal reached: {end}")
+                            break
+                            
+                        try:
+                            path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
+                            if not path_nodes or len(path_nodes) < 2:
+                                time.sleep(0.2)
+                                continue
+                                
+                            next_dir = m.getDirection(path_nodes[0], path_nodes[1])
+                            send_time(arduino, next_dir - 1, step_delay)
+                            
+                            time.sleep(step_delay / 1000.0)
+                            
+                        except KeyError:
+                            time.sleep(0.2)
+                            
+                    arduino.send('q')
+
+
+                elif key == ord('p'):
+                    m = Maze()
+                    warped_img, graph = extractor.process(frame)
+                    if graph is None:
+                        continue
+                    m.load_from_graph(graph)
+                    
+                    arduino.send('s') 
+                    time.sleep(0.1) 
+                    
+                    end = (8, 8)
+                    step_delay = 800 
+                    
+                    while True:
+                        raw_frame = picam2.capture_array()
+                        frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                        cv2.imshow("Camera Preview", frame)
+                        cv2.waitKey(1)
+                        
+                        warped_img, _ = extractor.process(frame)
+                        if warped_img is None:
+                            continue
+                            
+                        now = ball.find_ball(warped_img)
+                        
+                        if now == end:
+                            print(f"🏁 Goal reached: {end}")
+                            break
+                            
+                        try:
+                            path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
+                            if not path_nodes or len(path_nodes) < 2:
+                                time.sleep(0.2)
+                                continue
+                                
+                            next_dir = m.getDirection(path_nodes[0], path_nodes[1])
+                            send_time(arduino, next_dir - 1, step_delay)
+                            
+                            time.sleep(step_delay / 1000.0)
+                            
+                        except KeyError:
+                            time.sleep(0.2)
+                            
+                    arduino.send('q')
                 elif key == ord('t'):
                     arduino.send("t")
                 elif key == ord('m'):
