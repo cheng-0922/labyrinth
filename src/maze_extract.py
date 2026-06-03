@@ -64,7 +64,7 @@ class MazeGraphExtractor:
         pts = self._find_green_markers(img)
         if pts is None:
             print("無法在畫面中找到足夠的綠色定位塊")
-            return None, None
+            return None
 
         warped_img = self._four_point_transform(img, pts)
         return warped_img
