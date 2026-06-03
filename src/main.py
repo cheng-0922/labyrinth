@@ -267,6 +267,7 @@ if __name__ == "__main__":
                     angle_x =5
                     angle_y =5
                     cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
+                    arduino.send_line(cmd_str)
                 elif key == ord('t'):
                     arduino.send("t")
                 elif key == ord('m'):
