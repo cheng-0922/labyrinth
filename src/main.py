@@ -200,20 +200,13 @@ if __name__ == "__main__":
                         
                         while True:
                             raw_frame = picam2.capture_array()
-                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                             
-                            extractor._find_four_point(frame)
-                           
-                            if extractor.M is None or extractor.warp_dim is None:
-                                cv2.imshow("Camera Preview", frame)
-                                cv2.waitKey(1)
-                                continue
-                                
-                            warped_img = cv2.warpPerspective(frame, extractor.M, extractor.warp_dim)
-                            
-                            # cv2.imshow("Warped Preview", warped_img)
-                            # cv2.waitKey(1)
+                            pts = extractor._find_green_markers(raw_frame)
+                            if pts is None:
+                                 print("無法在畫面中找到足夠的綠色定位塊")
 
+                            warped_img = extractor._four_point_transform(raw_frame, pts)
+                            
                             now = ball.find_ball(warped_img)
                             if now is None:
                                 continue
