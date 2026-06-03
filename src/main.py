@@ -202,10 +202,11 @@ if __name__ == "__main__":
                             raw_frame = picam2.capture_array()
                             
                             pts = extractor._find_green_markers(raw_frame)
+                            pts = np.array(pts, dtype=np.float32)
                             if pts is None:
-                                 print("無法在畫面中找到足夠的綠色定位塊")
-
-                            warped_img = extractor._four_point_transform(raw_frame, pts)
+                                print("無法在畫面中找到足夠的綠色定位塊")
+                            else:
+                                warped_img = extractor._four_point_transform(raw_frame, pts)
                             
                             now = ball.find_ball(warped_img)
                             if now is None:
