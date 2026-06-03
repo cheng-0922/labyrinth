@@ -5,6 +5,7 @@ import cv2
 import serial
 import time
 import threading
+import numpy as np
 from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
@@ -187,47 +188,86 @@ if __name__ == "__main__":
                 elif key == ord('p'):
                     m = Maze()
                     warped_img, graph = extractor.process(frame)
-                    if graph is None:
-                        continue
-                    m.load_from_graph(graph)
-                    
-                    arduino.send('s') 
-                    time.sleep(0.1) 
-                    
-                    end = (8, 8)
-                    step_delay = 800 
-                    
-                    while True:
-                        raw_frame = picam2.capture_array()
-                        frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                        cv2.imshow("Camera Preview", frame)
-                        cv2.waitKey(1)
+                    if graph is not None:
+                        m.load_from_graph(graph)
+                        arduino.send('p')
+                        time.sleep(0.1)
                         
-                        warped_img, _ = extractor.process(frame)
-                        if warped_img is None:
-                            continue
-                            
-                        now = ball.find_ball(warped_img)
+                        end = (8, 8)
+                        kp, ki, kd = 1.5, 0.05, 0.3
+                        prev_err_x, prev_err_y = 0.0, 0.0
+                        integral_x, integral_y = 0.0, 0.0
                         
-                        if now == end:
-                            print(f"🏁 Goal reached: {end}")
-                            break
+                        while True:
+                            raw_frame = picam2.capture_array()
+                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                             
-                        try:
-                            path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
-                            if not path_nodes or len(path_nodes) < 2:
-                                time.sleep(0.2)
+                            extractor._find_four_point(frame)
+                           
+                            if extractor.M is None or extractor.warp_dim is None:
+                                cv2.imshow("Camera Preview", frame)
+                                cv2.waitKey(1)
                                 continue
                                 
-                            next_dir = m.getDirection(path_nodes[0], path_nodes[1])
-                            send_time(arduino, next_dir - 1, step_delay)
+                            warped_img = cv2.warpPerspective(frame, extractor.M, extractor.warp_dim)
                             
-                            time.sleep(step_delay / 1000.0)
+                            cv2.imshow("Warped Preview", warped_img)
+                            cv2.waitKey(1)
+
+                            now = ball.find_ball(warped_img)
+                            if now is None:
+                                continue
                             
-                        except KeyError:
-                            time.sleep(0.2)
-                            
-                    arduino.send('q')
+                            if now == end:
+                                print("🏁 已抵達終點！")
+                                break
+                                
+                            try:
+                                path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
+                                if not path_nodes or len(path_nodes) < 2:
+                                    time.sleep(0.05)
+                                    continue
+
+                                target_coord = path_nodes[1].get_index()
+                                h, w = warped_img.shape[:2]
+                                cell_w, cell_h = w / 9.0, h / 9.0
+                                
+                                target_px_x = (target_coord[1] + 0.5) * cell_w
+                                target_px_y = (target_coord[0] + 0.5) * cell_h
+                                
+                                ball_px = ball.get_ball_pixel_position(warped_img)
+                                if ball_px is None:
+                                    continue
+                                ball_px_x, ball_px_y = ball_px
+                                
+                                err_x = target_px_x - ball_px_x
+                                err_y = target_px_y - ball_px_y
+                                
+                                integral_x = np.clip(integral_x + err_x, -50, 50)
+                                integral_y = np.clip(integral_y + err_y, -50, 50)
+                                
+                                deriv_x = err_x - prev_err_x
+                                deriv_y = err_y - prev_err_y
+                                
+                                output_x = kp * err_x + ki * integral_x + kd * deriv_x
+                                output_y = kp * err_y + ki * integral_y + kd * deriv_y
+                                
+                                prev_err_x = err_x
+                                prev_err_y = err_y
+                                
+                                angle_x = int(np.clip(output_x, -15, 15))
+                                angle_y = int(np.clip(output_y, -15, 15))
+                                
+                                cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
+                                arduino.send_line(cmd_str)
+                                
+                                time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
+                                
+                            except KeyError:
+                                time.sleep(0.05)
+
+                                
+                        arduino.send('q')
                 elif key == ord('t'):
                     arduino.send("t")
                 elif key == ord('m'):
