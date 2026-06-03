@@ -211,8 +211,8 @@ if __name__ == "__main__":
                                 
                             warped_img = cv2.warpPerspective(frame, extractor.M, extractor.warp_dim)
                             
-                            cv2.imshow("Warped Preview", warped_img)
-                            cv2.waitKey(1)
+                            # cv2.imshow("Warped Preview", warped_img)
+                            # cv2.waitKey(1)
 
                             now = ball.find_ball(warped_img)
                             if now is None:
