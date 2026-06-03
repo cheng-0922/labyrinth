@@ -200,14 +200,15 @@ if __name__ == "__main__":
                         
                         while True:
                             raw_frame = picam2.capture_array()
+                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                            # 1. 抓取變形影像
+                            warped_img = extractor.wrap(frame)
                             
-                            # pts = extractor._find_green_markers(raw_frame)
-                            # pts = np.array(pts, dtype=np.float32)
-                            # if pts is None:
-                            #     print("無法在畫面中找到足夠的綠色定位塊")
-                            # else:
-                            #     warped_img = extractor._four_point_transform(raw_frame, pts)
-                            warped_img = extractor.wrap(raw_frame)
+                            if warped_img is None:
+                                # 為了不讓畫面死掉，可以選用 cv2.waitKey 稍微維持迴圈
+                                time.sleep(0.01) 
+                                continue
+                            
                             now = ball.find_ball(warped_img)
                             if now is None:
                                 continue
