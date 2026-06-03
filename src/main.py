@@ -250,16 +250,16 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                angle_x = int(np.clip(output_x, -10, 10))
-                                angle_y = -int(np.clip(output_y, -10, 10))
+                                angle_x = int(np.clip(output_x, -8, 8))
+                                angle_y = -int(np.clip(output_y, -8, 8))
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
                                 
-                                time.sleep(0.5) # 稍微降低延遲以提高 PID 反應速度
+                                time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
                                 
                             except KeyError:
-                                time.sleep(0.05)
+                                time.sleep(0.1)
 
                                 
                         arduino.send('q')
