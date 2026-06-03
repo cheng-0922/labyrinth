@@ -14,98 +14,90 @@ void setup() {
 
   Serial.println("READY");
 }
-
+char cmd = 'r';
 void loop() {
 
-  while (Serial.available() > 0) {
+  if(Serial.available()) {
+    cmd = Serial.read();
+  }
+  // RESET
+  if (cmd == 'r') {
+    reset();
+  }
+  // TEST DEAD PATH
+  if (cmd == 't') {
+    reset();
+    delay(100);
+    Serial.println("START DEAD PATH");
+    for (int i = 0; i < pathLen; i++) {
 
-    char cmd = Serial.read();
+      moveStep(
+        testPath[i].dirX,
+        testPath[i].dirY
+      );
 
-    // ======================
-    // RESET
-    // ======================
-
-    if (cmd == 'r') {
-      reset();
-      Serial.println("RESET");
-      continue;
+      Serial.print("STEP:");
+      Serial.print(testPath[i].dirX);
+      Serial.print(",");
+      Serial.println(testPath[i].dirY);
     }
 
-    // ======================
-    // START PATH
-    // ======================
+    Serial.println("DONE");
+    cmd='r';
+  }
+  // SERIAL DIR TIME
+  if (cmd == 's') {
+    if(Serial.available()){
+      String msg_dir =Serial.readStringUntil('\n');
+      msg_dir.trim();
+      int dir = msg_dir.toInt();
 
-    if (cmd == 't') {
-      reset();
-      delay(100);
-      Serial.println("START");
-      for (int i = 0; i < pathLen; i++) {
+      String msg_delay =Serial.readStringUntil('\n');
+      msg_delay.trim();
+      int stepDelay = msg_delay.toInt();
 
-        moveStep(
-          testPath[i].dirX,
-          testPath[i].dirY
-        );
-
-        Serial.print("STEP:");
-        Serial.print(testPath[i].dirX);
-        Serial.print(",");
-        Serial.println(testPath[i].dirY);
+      moveStep(testPath[dir].dirX,testPath[dir].dirY,stepDelay);
+      // Serial.println("MoveDir:");
+      // Serial.print(dir);
+    }
+  }
+  if(cmd == 'p'){
+    reset();
+    while (true) {
+      if (Serial.available() > 0) {
+        String msg = Serial.readStringUntil('\n');
+        msg.trim();
+        
+        // 檢查是否要退出 P 控制模式
+        if (msg == "q" || msg == "r") {
+          Serial.println("QUIT P_CONTROL");
+          reset();
+          cmd = 'r'; // 退回重置狀態
+          break;
+        }
+        
+        // 確實收到資料才餵給 pControl，不給它空轉的機會
+        if (msg.indexOf('X') != -1 && msg.indexOf('Y') != -1) {
+          pControl(msg);
+        }
       }
-
-      Serial.println("DONE");
-
-      continue;
     }
-
-    // ======================
-    // TEST ANGLE
-    // ======================
-
-    if (cmd == 's') {
-      while(true){
-        if(cmd='q'){
-          Serial.println("QUIT AUTO");
+  }
+  // JOYSTICK MODE
+  if (cmd == 'j') {
+    Serial.println("JOY");
+    reset();
+    while (true) {
+      joyControl();
+      if (Serial.available()) {
+        char c = Serial.read();
+        if (c == 'q') {
+          Serial.println("QUIT JOY");
           reset();
           break;
         }
-        String msg_dir =Serial.readStringUntil('\n');
-        msg.trim();
-        int dir = msg.toInt();
-        Serial.print("DIR:");
-        Serial.println(dir);
-
-        String msg_delay =Serial.readStringUntil('\n');
-        msg.trim();
-        int stepDelay = msg.toInt();
-        Serial.print("DELAYTIME:");
-        Serial.println(stepDelay);
-        moveStep(testPath[dir].dirX,testPath[dir].dirY,stepDelay);
       }
-      continue;
-    }
-    // ======================
-    // JOYSTICK MODE
-    // ======================
-
-    if (cmd == 'j') {
-      Serial.println("JOY");
-      reset();
-
-      while (true) {
-        joyControl();
-
-        if (Serial.available()) {
-          char c = Serial.read();
-
-          if (c == 'q') {
-            Serial.println("QUIT JOY");
-            reset();
-            break;
-          }
-        }
-      }
-
-      continue;
     }
   }
+  
 }

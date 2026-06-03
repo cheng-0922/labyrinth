@@ -94,7 +94,7 @@ const int DIR_RIGHT    = 1;
 const int DIR_STEADY   = 2;
 const int DIR_RESET    = 3;
 
-// const int stepAngle = 7;    // 最終傾斜幅度
+const int stepAngle = 7;    // 最終傾斜幅度
 // const int stepDelay = 600;  // 傾斜停留時間
 
 void reset(){
@@ -173,8 +173,8 @@ const Command testPath[] = {
   { DIR_LEFT,     DIR_STEADY,  1 }, //left  =3
   { DIR_STEADY,   DIR_STEADY,  1 }, //steady=4
   { DIR_RESET,    DIR_RESET,   1 }  //reset=5
-
 };
+
 // up=0, right=1,  down=2,  left=3,  steady=4,   reset=5
 // origin maze template
 int path[]={2,3,2,1,2,4,3,2,5}; //(0,4)->(8,0)
@@ -185,3 +185,30 @@ int path[]={2,3,2,1,2,4,3,2,5}; //(0,4)->(8,0)
 // int path[]={1,2,3,0,3,1,0,1,3,0,1,5}; //(8,8)->(0,4)
 
 const int pathLen = sizeof(path)/sizeof(path[0]);
+
+void pControl(String msg){
+  int xIndex = msg.indexOf('X');
+  int yIndex = msg.indexOf('Y');
+  
+  if (xIndex != -1 && yIndex != -1) {
+    // 切割出相對角度字串
+    String xStr = msg.substring(xIndex + 1, yIndex);
+    String yStr = msg.substring(yIndex + 1);
+    
+    // 自動轉換為帶正負號的整數 (例如 -3, 5)
+    int offsetX = xStr.toInt(); 
+    int offsetY = yStr.toInt(); 
+    
+    // 以 baseAngle 為基準加上修正量 
+    int targetAngleX = baseAngleX + offsetX; 
+    int targetAngleY = baseAngleY + offsetY; 
+    
+    // 安全邊界限制，防止超出 swingAngle 範圍 
+    targetAngleX = constrain(targetAngleX, minAngleX, maxAngleX); 
+    targetAngleY = constrain(targetAngleY, minAngleY, maxAngleY); 
+    
+    // 讓馬達即時到位 
+    servoX.write(targetAngleX); 
+    servoY.write(targetAngleY); 
+  }
+}
