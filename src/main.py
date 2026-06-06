@@ -194,20 +194,21 @@ if __name__ == "__main__":
                         time.sleep(0.1)
                         
                         end = (8, 8)
-                        kp, ki, kd = 1.5, 0.05, 0.3
+                        kp, ki, kd = 0.15, 0.05, 0.03
                         prev_err_x, prev_err_y = 0.0, 0.0
                         integral_x, integral_y = 0.0, 0.0
                         
                         while True:
                             raw_frame = picam2.capture_array()
+                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                            # 1. 抓取變形影像
+                            warped_img = extractor.wrap(frame)
                             
-                            # pts = extractor._find_green_markers(raw_frame)
-                            # pts = np.array(pts, dtype=np.float32)
-                            # if pts is None:
-                            #     print("無法在畫面中找到足夠的綠色定位塊")
-                            # else:
-                            #     warped_img = extractor._four_point_transform(raw_frame, pts)
-                            warped_img = extractor.wrap(raw_frame)
+                            if warped_img is None:
+                                # 為了不讓畫面死掉，可以選用 cv2.waitKey 稍微維持迴圈
+                                time.sleep(0.01) 
+                                continue
+                            
                             now = ball.find_ball(warped_img)
                             if now is None:
                                 continue
@@ -249,7 +250,7 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                angle_x = int(np.clip(output_x, -15, 15))
+                                angle_x = -int(np.clip(output_x, -15, 15))
                                 angle_y = int(np.clip(output_y, -15, 15))
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
