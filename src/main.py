@@ -149,7 +149,7 @@ if __name__ == "__main__":
                         
                         end = (8, 8)
                         
-                        # 初始化預測型控制器 (kp, kd, 物理模擬加速度係數)
+                        # 初始化預測型控制器
                         controller = PredictiveController(
                             kp=0.15, ki=0.0, kd=0.03, 
                             max_tilt=7, accel_gain=80.0, friction=0.95
@@ -159,26 +159,26 @@ if __name__ == "__main__":
                             raw_frame = picam2.capture_array()
                             frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                             
-                            # 1. 抓取變形影像與二值化牆壁圖 (Thresh Img)
                             warped_img = extractor.wrap(frame)
                             if warped_img is None:
                                 time.sleep(0.01) 
                                 continue
                                 
-                            thresh_img = extractor._extract_graph(warped_img)
-                            
-                            # 2. 獲取球的像素位置
+                            # 1. 獲取球的像素位置
                             ball_px = ball.get_ball_pixel_position(warped_img)
                             
-                            # 3. 取得目前 BFS 路徑
-                            # 我們使用狀態估測器的濾波位置來計算當前在哪個網格，避免影像雜訊導致頻繁重算路徑
+                            # 2. 決定當前網格 (修正：優先使用最新偵測的球座標，而非估測器初始的 0.0)
                             h, w = warped_img.shape[:2]
                             cell_w, cell_h = w / 9.0, h / 9.0
-                            est_x, est_y = controller.estimator.x, controller.estimator.y
                             
+                            if ball_px is not None:
+                                current_y, current_x = ball_px[1], ball_px[0]
+                            else:
+                                current_y, current_x = controller.estimator.y, controller.estimator.x
+                                
                             now_cell = (
-                                max(0, min(int(est_y / cell_h), 8)), 
-                                max(0, min(int(est_x / cell_w), 8))
+                                max(0, min(int(current_y / cell_h), 8)), 
+                                max(0, min(int(current_x / cell_w), 8))
                             )
                             
                             if now_cell == end:
@@ -187,39 +187,45 @@ if __name__ == "__main__":
                                 
                             try:
                                 path_nodes = m.BFS_2(m.node_dict[now_cell], m.node_dict[end])
+                                
+                                # 3. 若無路徑，給予空陣列讓控制器維持狀態
                                 if not path_nodes or len(path_nodes) < 2:
+                                    cmd_str, _ = controller.get_control_command(
+                                        ball_px, time.perf_counter(), [], warped_img, None
+                                    )
+                                    arduino.send_line(cmd_str)
                                     time.sleep(0.05)
                                     continue
                                 
-                                # 4. 透過預測控制器取得控制指令與除錯資訊
+                                # 4. 取得控制指令 (thresh_img 已不需要，傳入 None)
                                 cmd_str, debug_info = controller.get_control_command(
                                     ball_px, 
                                     time.perf_counter(), 
                                     path_nodes, 
                                     warped_img, 
-                                    thresh_img, 
-                                    debug_draw=True
+                                    None, 
+                                    debug_draw=False
                                 )
                                 
                                 # 5. 發送至 Arduino
                                 arduino.send_line(cmd_str)
                                 
-                                # 6. 畫出預測軌跡與偵測視覺效果 (極致美觀)
-                                
-                                # 點按 'q' 鍵可手動中斷
                                 key = cv2.waitKey(1) & 0xFF
                                 if key == ord('q'):
                                     break
                                     
-                                time.sleep(0.03) # 高頻率控制，降低延遲影響
+                                time.sleep(0.03)
                                 
                             except KeyError:
+                                # 修正：發生 KeyError 時 (如球被錯認為在牆壁上)
+                                # 仍呼叫控制器更新時間與慣性狀態，避免卡死
+                                cmd_str, _ = controller.get_control_command(
+                                    ball_px, time.perf_counter(), [], warped_img, None
+                                )
+                                arduino.send_line(cmd_str)
                                 time.sleep(0.05)
                                 
                         arduino.send('q')
-
-                            
-                    arduino.send('q')
 
 
                 elif key == ord('p'):
@@ -294,9 +300,9 @@ if __name__ == "__main__":
                                 arduino.send_line(cmd_str)
                                 
                                 time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
-                                key = cv2.waitKey(1) & 0xFF
-                                if key == ord('q'):
-                                    break
+                                # key = cv2.waitKey(1) & 0xFF
+                                # if key == ord('q'):
+                                #     break
                             except KeyError:
                                 time.sleep(0.1)
 
