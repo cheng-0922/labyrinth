@@ -1,4 +1,5 @@
 
+from socket import has_dualstack_ipv6
 import argparse
 import sys
 import cv2
@@ -132,13 +133,25 @@ if __name__ == "__main__":
                 cv2.imshow("Camera Preview", frame)
                 key = cv2.waitKey(1) & 0xFF
                 warped_img = None
-                
+                m = Maze()
+                has_graph = False
                 if key == ord('r'):
                     arduino.send("r")
                 elif key == ord('j'):
                     arduino.send("j")
                 elif key == ord('q'):
                     arduino.send("q")
+
+                elif key == ord('m'):
+                    with Timer():
+                        warped_img, graph = extractor.process(frame)
+                        print("\n🔍 掃描中...")
+                        if graph is not None:
+                            m.load_from_graph(graph)
+                            cv2.imshow("Final Warped Maze", warped_img)
+                            has_graph = True
+                            print("Graph Loaded!")
+                        
                 elif key == ord('s'):
                     m = Maze()
                     warped_img, graph = extractor.process(frame)
@@ -227,12 +240,9 @@ if __name__ == "__main__":
                                 
                         arduino.send('q')
 
-
+                
                 elif key == ord('p'):
-                    m = Maze()
-                    warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        m.load_from_graph(graph)
+                    if has_graph == True:
                         arduino.send('p')
                         time.sleep(0.1)
                         
@@ -355,12 +365,7 @@ if __name__ == "__main__":
                     arduino.send_line(cmd_str)
                 elif key == ord('t'):
                     arduino.send("t")
-                elif key == ord('m'):
-                    with Timer():
-                        print("\n🔍 掃描中...")
-                        warped_img, graph = extractor.process(frame)
-                        if graph is not None:
-                            cv2.imshow("Final Warped Maze", warped_img)
+                
                 elif key == ord('f'):
                     with Timer():
                         print("\n🔍 掃描球的位置...")
