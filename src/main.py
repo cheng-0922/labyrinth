@@ -1,5 +1,3 @@
-
-from socket import has_dualstack_ipv6
 import argparse
 import sys
 import cv2
@@ -7,6 +5,7 @@ import serial
 import time
 import threading
 import numpy as np
+import queue
 from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
@@ -15,60 +14,121 @@ from ser import ArduinoSerial
 from control import PredictiveController
 class Timer:
     def __enter__(self):
-        # 當進入 with 區塊時，記錄開始時間
         self.start_time = time.perf_counter()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # 當離開 with 區塊時，計算並印出花費時間
         self.end_time = time.perf_counter()
         self.elapsed_time = self.end_time - self.start_time
         print(f"執行耗時: {self.elapsed_time:.6f} 秒")
 
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
+END_POINT = (8,8)
+cmd_queue = queue.Queue()
+params = {
+    "size" : 9,
+    "wall_threshold" : 0.333,
+    "endpoint" : END_POINT,
 
-def cmd_loop(state,extractor,arduino,cmd):
+    "kp": 0.15,
+    "ki": 0.05,
+    "kd": 0.03,
+    "slowstep":3,
+    "highstep" :8,
+    "compensate" :1,
+    "lookahead" : 0.25,
+    "delayPID" : 0.1,
+}
+param_alias = {
+    "w" : "wall_threshold" ,
+    "ss" : "slowstep",
+    "hs" : "highstep",
+    "c" : "compensate",
+    "l" : "lookahead",
+    "dt" : "delayPID",
+    "end" : "endpoint"
+}
+def set_params(cmd: str):
+        """
+        支援：
+        - w=0.45
+        - w 0.45
+        - wall=0.45 inset=0.3
+        - d (切換 debug 模式)
+        """
+        cmd = cmd.strip()
+        
+        # 把 "=" 統一換成空格，統一格式，例如 "w=0.45 i 0.3" -> "w 0.45 i 0.3"
+        normalized_cmd = cmd.replace("=", " ")
+        tokens = normalized_cmd.split()
+
+        for i in range(0, len(tokens) - 1, 2):
+            k = tokens[i]
+            v_str = tokens[i+1]
+
+            key = param_alias.get(k, k)
+
+            if key not in params:
+                print(f"Unknown param: {key}")
+                continue
+
+            try:
+                v = float(v_str)
+                params[key] = v
+                print(f"[{key}] -> {v}")
+            except ValueError:
+                print(f"Invalid value for {key}: {v_str}")
+
+def cmd_input_loop():
     while True:
         cmd = input(">> ")
-        if state == 0:
-            if cmd ==':':
-                state = 0
-                print("change to state 0")
-            #start auto
-            else : arduino.send(cmd)
-        if state == 1:
-            if cmd =='q':
-                state = 0
-                print("change to state 1")
-            else : extractor.set_params(cmd)
+        if cmd:
+            cmd_queue.put(cmd)
 
-def send_time(arduino, direction: int, delay_time: int):
-
-    try:        
-        arduino.send_line(str(direction))
-        arduino.send_line(str(delay_time))
-        
-        print(f" 已發送控制訊號 - 方向: {direction}, 延遲: {delay_time} ms")
-        
-    except Exception as e:
-        print(f" 傳送角度控制訊號失敗: {e}")
-
+def handle_cmd(cmd, shared, extractor):
+    if shared["state"] == 0:
+        if cmd ==':':
+            shared["state"] = 1
+            print("state 0 change to state 1")
+        elif cmd =='/':
+            shared["state"] = 2
+            print("state 0 change to state 2")
+    elif shared["state"] == 1:
+        if cmd =='q':
+            shared["state"] = 0
+            print("state 1 change to state 0")
+        elif cmd =='2' :
+            shared["state"] = 2
+            print("state 1 change to state 2")
+        elif cmd == '?':
+            print(extractor.params)
+        else : extractor.set_params(cmd)
+    elif shared["state"] == 2:
+        if cmd == 'q':
+            shared["state"] = 0
+            print("state 2 change to state 0")
+        elif cmd == '1':
+            shared["state"] = 1
+            print("state 2 change to state 1")
+        elif cmd == '?':
+            print(params)
+        else : set_params(cmd)
+    return cmd
 
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
     parser = argparse.ArgumentParser(description="Maze Scanner")
     parser.add_argument("-i", "--image", type=str, help="指定靜態圖片的路徑 (若無則啟動相機)")
     parser.add_argument("-d", "--debug", action="store_true", help="開啟除錯視窗")
+    parser.add_argument("-t", "--text", action="store_true", help="無視窗模式")
     args = parser.parse_args()
 
-    # ---  ---
-    extractor = MazeGraphExtractor(maze_size=9, wall_threshold=0.333, debug=args.debug)
-    ball = BallDetector(maze_size = 9, debug=args.debug)
-    arduino = ArduinoSerial(PORT, BAUD)
-    state = 1
-    cmd = None
-    threading.Thread(target=cmd_loop, args=(state,extractor,arduino,cmd,), daemon=True).start()
+    # --- Initialize Class ---
+    extractor = MazeGraphExtractor(maze_size=params["size"], wall_threshold=params["wall_threshold"], debug=args.debug)
+    ball = BallDetector(maze_size = params["size"], debug=args.debug)
+    shared = {"state": 0,"cmd": None}
+    threading.Thread(target=cmd_input_loop, daemon=True).start()
 
     # --- 2. 靜態圖片模式 ---
     if args.image:
@@ -82,8 +142,8 @@ if __name__ == "__main__":
         warped_img, raw_graph = extractor.process(frame)
         
         if raw_graph is not None:
-            cv2.imshow("Original Image", frame)
-            cv2.imshow("Final Warped Maze", warped_img)
+            if not args.text: cv2.imshow("Original Image", frame)
+            if not args.text: cv2.imshow("Final Warped Maze", warped_img)
             print("✅ 迷宮解析完成！(按任意鍵關閉)")
             if raw_graph is not None:
                 # 2.  Maze 
@@ -112,156 +172,92 @@ if __name__ == "__main__":
 
     # --- 3. 實體相機模式 ---
     else:
+        m = Maze()
+        has_graph = False
+        def mode(name, cmd):
+            if shared["state"] == 0 and cmd == name:
+                return True
+            return False
+        
         try:
             # 只有在相機模式才引入 picamera2，避免在一般電腦上報錯
             from picamera2 import Picamera2
             picam2 = Picamera2()
             picam2.start()
             print("🎥 相機已啟動。(按 's' 解析，按 'q' 離開)")
+            arduino = ArduinoSerial(PORT, BAUD)
         except ImportError:
             print("❌ 錯誤：找不到 picamera2 模組。若是使用一般電腦，請加上 -i 參數指定圖片測試。")
             sys.exit(1)
             print(f"開啟 {PORT} @ {BAUD} baud ...")
         
         try:
-            
             while True:
-                # serial communication
+                # 1. 讀取序列埠
                 msg = arduino.read()
                 if msg:
                     print("Arduino:", msg)
-                # update camera
+                
+                # 2. 更新相機與視窗
                 raw_frame = picam2.capture_array()
                 frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                cv2.imshow("Camera Preview", frame)
-                key = cv2.waitKey(1) & 0xFF
+                if not args.text: cv2.imshow("Camera Preview", frame)
                 warped_img = None
-                m = Maze()
-                has_graph = False
-                if key == ord('r'):
+
+                key = cv2.waitKey(1) & 0xFF
+                if key == 27: # ESC Stop Camera  
+                    break
+                
+                # 3. 處理終端機指令 (非阻塞)
+                cmd = None
+                while not cmd_queue.empty():
+                    cmd = handle_cmd(cmd_queue.get(), shared, extractor)
+
+                # 4. 模式控制 (結合鍵盤與終端機觸發)
+                if key == ord("r") or cmd == 'r':
                     arduino.send("r")
-                elif key == ord('j'):
+                elif key == ord("j") or cmd == 'j':
                     arduino.send("j")
-                elif key == ord('q'):
+                elif key == ord("q") or cmd == 'q':
                     arduino.send("q")
 
-                elif key == ord('m'):
+                elif key == ord('m') or cmd == 'm':
                     with Timer():
                         warped_img, graph = extractor.process(frame)
                         print("\n🔍 掃描中...")
                         if graph is not None:
                             m.load_from_graph(graph)
-                            cv2.imshow("Final Warped Maze", warped_img)
+                            if not args.text: cv2.imshow("Final Warped Maze", warped_img)
                             has_graph = True
                             print("Graph Loaded!")
-                        
-                elif key == ord('s'):
-                    m = Maze()
-                    warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        m.load_from_graph(graph)
+                                        
+                elif key == ord('p') or cmd == 'p':
+                    if has_graph:
                         arduino.send('p')
                         time.sleep(0.1)
                         
-                        end = (8, 8)
-                        
-                        # 初始化預測型控制器
-                        controller = PredictiveController(
-                            kp=0.15, ki=0.0, kd=0.03, 
-                            max_tilt=7, accel_gain=80.0, friction=0.95
-                        )
-                        
-                        while True:
-                            raw_frame = picam2.capture_array()
-                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                            
-                            warped_img = extractor.wrap(frame)
-                            if warped_img is None:
-                                time.sleep(0.01) 
-                                continue
-                                
-                            # 1. 獲取球的像素位置
-                            ball_px = ball.get_ball_pixel_position(warped_img)
-                            
-                            # 2. 決定當前網格 (修正：優先使用最新偵測的球座標，而非估測器初始的 0.0)
-                            h, w = warped_img.shape[:2]
-                            cell_w, cell_h = w / 9.0, h / 9.0
-                            
-                            if ball_px is not None:
-                                current_y, current_x = ball_px[1], ball_px[0]
-                            else:
-                                current_y, current_x = controller.estimator.y, controller.estimator.x
-                                
-                            now_cell = (
-                                max(0, min(int(current_y / cell_h), 8)), 
-                                max(0, min(int(current_x / cell_w), 8))
-                            )
-                            
-                            if now_cell == end:
-                                print("🏁 已抵達終點！")
-                                break
-                                
-                            try:
-                                path_nodes = m.BFS_2(m.node_dict[now_cell], m.node_dict[end])
-                                
-                                # 3. 若無路徑，給予空陣列讓控制器維持狀態
-                                if not path_nodes or len(path_nodes) < 2:
-                                    cmd_str, _ = controller.get_control_command(
-                                        ball_px, time.perf_counter(), [], warped_img, None
-                                    )
-                                    arduino.send_line(cmd_str)
-                                    time.sleep(0.05)
-                                    continue
-                                
-                                # 4. 取得控制指令 (thresh_img 已不需要，傳入 None)
-                                cmd_str, debug_info = controller.get_control_command(
-                                    ball_px, 
-                                    time.perf_counter(), 
-                                    path_nodes, 
-                                    warped_img, 
-                                    None, 
-                                    debug_draw=False
-                                )
-                                
-                                # 5. 發送至 Arduino
-                                arduino.send_line(cmd_str)
-                                
-                                key = cv2.waitKey(1) & 0xFF
-                                if key == ord('q'):
-                                    break
-                                    
-                                time.sleep(0.03)
-                                
-                            except KeyError:
-                                # 修正：發生 KeyError 時 (如球被錯認為在牆壁上)
-                                # 仍呼叫控制器更新時間與慣性狀態，避免卡死
-                                cmd_str, _ = controller.get_control_command(
-                                    ball_px, time.perf_counter(), [], warped_img, None
-                                )
-                                arduino.send_line(cmd_str)
-                                time.sleep(0.05)
-                                
-                        arduino.send('q')
-
-                
-                elif key == ord('p'):
-                    if has_graph == True:
-                        arduino.send('p')
-                        time.sleep(0.1)
-                        
-                        end = (8, 8)
-                        kp, ki, kd = 0.15, 0.05, 0.03
+                        end = params["endpoint"]
+                        kp, ki, kd = params["kp"], params["ki"], params["kd"] 
                         prev_err_x, prev_err_y = 0.0, 0.0
                         integral_x, integral_y = 0.0, 0.0
                         
-                        while cmd !='q':
+                        while True:
+                            key = cv2.waitKey(1) & 0xFF
+                            
+                            # 檢查終端機是否發送中斷指令 (解決文字模式無法退出的問題)
+                            if not cmd_queue.empty():
+                                sub_cmd = cmd_queue.get()
+                                if sub_cmd == 'q':
+                                    break
+                                    
+                            if key == ord('q'):
+                                break
+                                
                             raw_frame = picam2.capture_array()
                             frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                            # 1. 抓取變形影像
                             warped_img = extractor.wrap(frame)
                             
                             if warped_img is None:
-                                # 為了不讓畫面死掉，可以選用 cv2.waitKey 稍微維持迴圈
                                 time.sleep(0.01) 
                                 continue
                             
@@ -270,7 +266,7 @@ if __name__ == "__main__":
                                 continue
                             
                             if now == end:
-                                print("🏁 已抵達終點！")
+                                print("已抵達終點！")
                                 break
                                 
                             try:
@@ -286,23 +282,16 @@ if __name__ == "__main__":
                                 target_px_x = (target_coord[1] + 0.5) * cell_w
                                 target_px_y = (target_coord[0] + 0.5) * cell_h
                                 
-                                # === T 字型路口轉彎預判 ===
-                                # 判斷下一個 node 是否是 T 字型路口，若是則預先往轉彎方向傾斜
                                 turn_ahead_x, turn_ahead_y = 0, 0
                                 if len(path_nodes) >= 3:
                                     next_node = path_nodes[1]
-                                    
-                                    # 當前方向：path_nodes[0] → path_nodes[1]
                                     curr_dir_r = path_nodes[1].get_index()[0] - path_nodes[0].get_index()[0]
                                     curr_dir_c = path_nodes[1].get_index()[1] - path_nodes[0].get_index()[1]
-                                        
-                                    # 下一個方向：path_nodes[1] → path_nodes[2]
                                     next_dir_r = path_nodes[2].get_index()[0] - path_nodes[1].get_index()[0]
                                     next_dir_c = path_nodes[2].get_index()[1] - path_nodes[1].get_index()[1]
                                     
-                                    # 轉彎方向偏移（提前 0.25 倍 cell）
-                                    turn_ahead_x = next_dir_c * 0.25 * cell_w
-                                    turn_ahead_y = next_dir_r * 0.25 * cell_h
+                                    turn_ahead_x = next_dir_c * params["lookahead"] * cell_w
+                                    turn_ahead_y = next_dir_r * params["lookahead"]  * cell_h
 
                                 target_px_x += turn_ahead_x
                                 target_px_y += turn_ahead_y
@@ -323,26 +312,22 @@ if __name__ == "__main__":
                                 
                                 output_x = kp * err_x + ki * integral_x + kd * deriv_x
                                 output_y = kp * err_y + ki * integral_y + kd * deriv_y
-                                print (f"output: ({output_x:.1f}, {output_y:.1f}), error: ({err_x:.1f}, {err_y:.1f})")
+                                print(f"output: ({output_x:.1f}, {output_y:.1f}), error: ({err_x:.1f}, {err_y:.1f})")
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
                                 if not next_node.is_t_junction():
-                                    step = 8
+                                    step = params["slowstep"]
                                 else:
-                                    step = 3 
-                                if abs(output_x**2+output_y**2) < 1:
+                                    step = params["highstep"]
+                                    
+                                if abs(output_x**2+output_y**2) < params["compensate"]:
+                                    i = params["compensate"]
                                     if abs(output_x) > abs(output_y):
-                                        if output_x > 0:
-                                            output_x = 1
-                                        else:
-                                            output_x = -1
+                                        output_x = i if output_x > 0 else -i
                                         output_y = 0
                                     else:
-                                        if output_y > 0:
-                                            output_y = 1
-                                        else:
-                                            output_y = -1
+                                        output_y = i if output_y > 0 else -i
                                         output_x = 0
 
                                 angle_x = +int(np.clip(output_x, -step, step))
@@ -351,39 +336,33 @@ if __name__ == "__main__":
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
                                 
-                                time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
-                                # key = cv2.waitKey(1) & 0xFF
-                                # if :
-                                #     break
+                                time.sleep(params["delayPID"])
+                                
                             except KeyError:
                                 time.sleep(0.1)
-
-                                
+  
                         arduino.send('q')
-                elif key == ord('o'):
+
+                elif key == ord('o') or cmd == 'o':
                     arduino.send('p')
-                    angle_x =5
-                    angle_y =5
+                    angle_x = 5
+                    angle_y = 5
                     cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                     arduino.send_line(cmd_str)
-                elif key == ord('t'):
+                    
+                elif key == ord('t') or cmd == 't':
                     arduino.send("t")
                 
-                elif key == ord('f'):
+                elif key == ord('f') or cmd == 'f':
                     with Timer():
-                        print("\n🔍 掃描球的位置...")
+                        print("\n 掃描球的位置...")
                         warped_img, _ = extractor.process(frame)
                         if warped_img is None:
-                            print("❌ 無法校正影像，請確認定位點可見")
+                            print(" 無法校正影像，請確認定位點可見")
                         else:
                             pos = ball.find_ball(warped_img)
-                            print(f"球的位置：{pos}")       
-
-
-
+                            print(f"球的位置：{pos}")
                 
-                if key == 27 :
-                    break
         finally:
             picam2.stop()
             cv2.destroyAllWindows()
