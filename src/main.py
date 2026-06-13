@@ -237,76 +237,99 @@ if __name__ == "__main__":
                         time.sleep(0.1)
                         
                         end = (8, 8)
-                        
-                        # 初始化預測型控制器
-                        controller = PredictiveController(
-                            kp=0.15, ki=0.0, kd=0.03, 
-                            max_tilt=7, accel_gain=80.0, friction=0.95
-                        )
+                        kp, ki, kd = 0.15, 0.05, 0.03
+                        prev_err_x, prev_err_y = 0.0, 0.0
+                        integral_x, integral_y = 0.0, 0.0
                         
                         while True:
                             raw_frame = picam2.capture_array()
                             frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                            
+                            # 1. 抓取變形影像
                             warped_img = extractor.wrap(frame)
+                            
                             if warped_img is None:
+                                # 為了不讓畫面死掉，可以選用 cv2.waitKey 稍微維持迴圈
                                 time.sleep(0.01) 
                                 continue
-                                
-                            # 1. 獲取球的像素位置
-                            ball_px = ball.get_ball_pixel_position(warped_img)
                             
-                            # 2. 決定當前網格
-                            h, w = warped_img.shape[:2]
-                            cell_w, cell_h = w / 9.0, h / 9.0
+                            now = ball.find_ball(warped_img)
+                            if now is None:
+                                continue
                             
-                            if ball_px is not None:
-                                current_y, current_x = ball_px[1], ball_px[0]
-                            else:
-                                current_y, current_x = controller.estimator.y, controller.estimator.x
-                                
-                            now_cell = (
-                                max(0, min(int(current_y / cell_h), 8)), 
-                                max(0, min(int(current_x / cell_w), 8))
-                            )
-                            
-                            if now_cell == end:
+                            if now == end:
                                 print("🏁 已抵達終點！")
                                 break
                                 
                             try:
-                                path_nodes = m.BFS_2(m.node_dict[now_cell], m.node_dict[end])
-                                
-                                # 若無路徑，給予空陣列讓控制器維持狀態
+                                path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
                                 if not path_nodes or len(path_nodes) < 2:
-                                    cmd_str, _ = controller.get_control_command(
-                                        ball_px, time.perf_counter(), [], warped_img, None
-                                    )
-                                    arduino.send_line(cmd_str)
                                     time.sleep(0.05)
                                     continue
+
+                                target_coord = path_nodes[1].get_index()
+                                h, w = warped_img.shape[:2]
+                                cell_w, cell_h = w / 9.0, h / 9.0
                                 
-                                # 3. 取得控制指令
-                                cmd_str, debug_info = controller.get_control_command(
-                                    ball_px, 
-                                    time.perf_counter(), 
-                                    path_nodes, 
-                                    warped_img, 
-                                    None, 
-                                    debug_draw=False
-                                )
+                                target_px_x = (target_coord[1] + 0.5) * cell_w
+                                target_px_y = (target_coord[0] + 0.5) * cell_h
                                 
-                                # 4. 發送至 Arduino
+                                # === T 字型路口轉彎預判 ===
+                                # 判斷下一個 node 是否是 T 字型路口，若是則預先往轉彎方向傾斜
+                                turn_ahead_x, turn_ahead_y = 0, 0
+                                if len(path_nodes) >= 3:
+                                    next_node = path_nodes[1]
+                                    
+                                    # 判斷下一個 node 是否為 T 字型路口
+                                    if next_node.is_t_junction():
+                                        # 當前方向：path_nodes[0] → path_nodes[1]
+                                        curr_dir_r = path_nodes[1].get_index()[0] - path_nodes[0].get_index()[0]
+                                        curr_dir_c = path_nodes[1].get_index()[1] - path_nodes[0].get_index()[1]
+                                        
+                                        # 下一個方向：path_nodes[1] → path_nodes[2]
+                                        next_dir_r = path_nodes[2].get_index()[0] - path_nodes[1].get_index()[0]
+                                        next_dir_c = path_nodes[2].get_index()[1] - path_nodes[1].get_index()[1]
+                                        
+                                        # 轉彎方向偏移（提前 0.25 倍 cell）
+                                        turn_ahead_x = next_dir_c * 0.25 * cell_w
+                                        turn_ahead_y = next_dir_r * 0.25 * cell_h
+                                
+                                target_px_x += turn_ahead_x
+                                target_px_y += turn_ahead_y
+                                
+                                ball_px = ball.get_ball_pixel_position(warped_img)
+                                if ball_px is None:
+                                    continue
+                                ball_px_x, ball_px_y = ball_px
+                                
+                                err_x = target_px_x - ball_px_x
+                                err_y = target_px_y - ball_px_y
+                                
+                                integral_x = np.clip(integral_x + err_x, -50, 50)
+                                integral_y = np.clip(integral_y + err_y, -50, 50)
+                                
+                                deriv_x = err_x - prev_err_x
+                                deriv_y = err_y - prev_err_y
+                                
+                                output_x = kp * err_x + ki * integral_x + kd * deriv_x
+                                output_y = kp * err_y + ki * integral_y + kd * deriv_y
+                                
+                                prev_err_x = err_x
+                                prev_err_y = err_y
+                                
+                                angle_x = -int(np.clip(output_x, -8, 8))
+                                angle_y = +int(np.clip(output_y, -8, 8))
+                                
+                                cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
                                 
-                                # 5. 等待與檢查輸入
-                                time.sleep(0.03)
-                                key = cv2.waitKey(1) & 0xFF
-                                if key == ord('q'):
-                                    break
+                                time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
+                                # key = cv2.waitKey(1) & 0xFF
+                                # if key == ord('q'):
+                                #     break
                             except KeyError:
-                                time.sleep(0.05)
+                                time.sleep(0.1)
 
+                                
                         arduino.send('q')
                 elif key == ord('o'):
                     arduino.send('p')
