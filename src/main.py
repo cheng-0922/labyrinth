@@ -315,9 +315,22 @@ if __name__ == "__main__":
                                 prev_err_y = err_y
                                 
                                 if not next_node.is_t_junction():
-                                    step = 8;
+                                    step = 8
                                 else:
-                                    step = 2;
+                                    step = 2
+                                if abs(output_x**2+output_y**2) < 1:
+                                    if abs(output_x) > abs(output_y):
+                                        if output_x > 0:
+                                            output_x = 1
+                                        else:
+                                            output_x = -1
+                                        output_y = 0
+                                    else:
+                                        if output_y > 0:
+                                            output_y = 1
+                                        else:
+                                            output_y = -1
+                                        output_x = 0
 
                                 angle_x = -int(np.clip(output_x, -step, step))
                                 angle_y = +int(np.clip(output_y, -step, step))
