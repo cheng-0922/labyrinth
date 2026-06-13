@@ -205,23 +205,6 @@ if __name__ == "__main__":
                                 arduino.send_line(cmd_str)
                                 
                                 # 6. 畫出預測軌跡與偵測視覺效果 (極致美觀)
-                                if debug_info is not None:
-                                    state = debug_info["state"]
-                                    target = debug_info["target"]
-                                    nominal_traj = debug_info["nominal_traj"]
-                                    final_traj = debug_info["final_traj"]
-                                    
-                                    # 畫出當前濾波位置 (黃色) 與目標點 (藍色)
-                                    cv2.circle(warped_img, (int(state[0]), int(state[1])), 6, (0, 255, 255), -1)
-                                    cv2.circle(warped_img, (int(target[0]), int(target[1])), 8, (255, 0, 0), -1)
-                                    
-                                    # 畫出預測軌跡：名義軌跡 (紅色點)、最終採取軌跡 (綠色點)
-                                    for pt in nominal_traj:
-                                        cv2.circle(warped_img, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
-                                    for pt in final_traj:
-                                        cv2.circle(warped_img, (int(pt[0]), int(pt[1])), 3, (0, 255, 0), -1)
-                                        
-                                    cv2.imshow("Predictive Trajectory Preview", warped_img)
                                 
                                 # 點按 'q' 鍵可手動中斷
                                 key = cv2.waitKey(1) & 0xFF
@@ -304,14 +287,16 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                angle_x = int(np.clip(output_x, -8, 8))
-                                angle_y = -int(np.clip(output_y, -8, 8))
+                                angle_x = -int(np.clip(output_x, -8, 8))
+                                angle_y = +int(np.clip(output_y, -8, 8))
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
                                 
                                 time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
-                                
+                                key = cv2.waitKey(1) & 0xFF
+                                if key == ord('q'):
+                                    break
                             except KeyError:
                                 time.sleep(0.1)
 
