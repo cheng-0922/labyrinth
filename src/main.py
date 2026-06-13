@@ -28,17 +28,19 @@ class Timer:
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
 
-def cmd_loop(state,extractor,arduino):
+def cmd_loop(state,extractor,arduino,cmd):
     while True:
         cmd = input(">> ")
         if state == 0:
             if cmd ==':':
                 state = 0
+                print("change to state 0")
             #start auto
             else : arduino.send(cmd)
         if state == 1:
             if cmd =='q':
                 state = 0
+                print("change to state 1")
             else : extractor.set_params(cmd)
 
 def send_time(arduino, direction: int, delay_time: int):
@@ -65,7 +67,8 @@ if __name__ == "__main__":
     ball = BallDetector(maze_size = 9, debug=args.debug)
     arduino = ArduinoSerial(PORT, BAUD)
     state = 1
-    threading.Thread(target=cmd_loop, args=(state,extractor,arduino,), daemon=True).start()
+    cmd = None
+    threading.Thread(target=cmd_loop, args=(state,extractor,arduino,cmd,), daemon=True).start()
 
     # --- 2. 靜態圖片模式 ---
     if args.image:
@@ -251,7 +254,7 @@ if __name__ == "__main__":
                         prev_err_x, prev_err_y = 0.0, 0.0
                         integral_x, integral_y = 0.0, 0.0
                         
-                        while True:
+                        while cmd !='q':
                             raw_frame = picam2.capture_array()
                             frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                             # 1. 抓取變形影像
@@ -350,7 +353,7 @@ if __name__ == "__main__":
                                 
                                 time.sleep(0.1) # 稍微降低延遲以提高 PID 反應速度
                                 # key = cv2.waitKey(1) & 0xFF
-                                # if key == ord('q'):
+                                # if :
                                 #     break
                             except KeyError:
                                 time.sleep(0.1)
