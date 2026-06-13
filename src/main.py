@@ -279,20 +279,18 @@ if __name__ == "__main__":
                                 if len(path_nodes) >= 3:
                                     next_node = path_nodes[1]
                                     
-                                    # 判斷下一個 node 是否為 T 字型路口
-                                    if next_node.is_t_junction():
-                                        # 當前方向：path_nodes[0] → path_nodes[1]
-                                        curr_dir_r = path_nodes[1].get_index()[0] - path_nodes[0].get_index()[0]
-                                        curr_dir_c = path_nodes[1].get_index()[1] - path_nodes[0].get_index()[1]
+                                    # 當前方向：path_nodes[0] → path_nodes[1]
+                                    curr_dir_r = path_nodes[1].get_index()[0] - path_nodes[0].get_index()[0]
+                                    curr_dir_c = path_nodes[1].get_index()[1] - path_nodes[0].get_index()[1]
                                         
-                                        # 下一個方向：path_nodes[1] → path_nodes[2]
-                                        next_dir_r = path_nodes[2].get_index()[0] - path_nodes[1].get_index()[0]
-                                        next_dir_c = path_nodes[2].get_index()[1] - path_nodes[1].get_index()[1]
-                                        
-                                        # 轉彎方向偏移（提前 0.25 倍 cell）
-                                        turn_ahead_x = next_dir_c * 0.25 * cell_w
-                                        turn_ahead_y = next_dir_r * 0.25 * cell_h
-                                
+                                    # 下一個方向：path_nodes[1] → path_nodes[2]
+                                    next_dir_r = path_nodes[2].get_index()[0] - path_nodes[1].get_index()[0]
+                                    next_dir_c = path_nodes[2].get_index()[1] - path_nodes[1].get_index()[1]
+                                    
+                                    # 轉彎方向偏移（提前 0.25 倍 cell）
+                                    turn_ahead_x = next_dir_c * 0.25 * cell_w
+                                    turn_ahead_y = next_dir_r * 0.25 * cell_h
+
                                 target_px_x += turn_ahead_x
                                 target_px_y += turn_ahead_y
                                 
@@ -316,8 +314,13 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                angle_x = -int(np.clip(output_x, -8, 8))
-                                angle_y = +int(np.clip(output_y, -8, 8))
+                                if not next_node.is_t_junction():
+                                    step = 8;
+                                else:
+                                    step = 2;
+
+                                angle_x = -int(np.clip(output_x, -step, step))
+                                angle_y = +int(np.clip(output_y, -step, step))
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
