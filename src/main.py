@@ -11,6 +11,7 @@ from node import Node
 from maze_extract import MazeGraphExtractor 
 from ball_detector import BallDetector
 from ser import ArduinoSerial
+from control import PredictiveController
 class Timer:
     def __enter__(self):
         # 當進入 with 區塊時，記錄開始時間
@@ -139,48 +140,101 @@ if __name__ == "__main__":
                 elif key == ord('q'):
                     arduino.send("q")
                 elif key == ord('s'):
-            
                     m = Maze()
                     warped_img, graph = extractor.process(frame)
-                    if graph is None:
-                        continue
-                    m.load_from_graph(graph)
-                    
-                    arduino.send('s') 
-                    time.sleep(0.1) 
-                    
-                    end = (8, 8)
-                    step_delay = 800 
-                    
-                    while True:
-                        raw_frame = picam2.capture_array()
-                        frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                        cv2.imshow("Camera Preview", frame)
-                        cv2.waitKey(1)
+                    if graph is not None:
+                        m.load_from_graph(graph)
+                        arduino.send('p')
+                        time.sleep(0.1)
                         
-                        warped_img, _ = extractor.process(frame)
-                        if warped_img is None:
-                            continue
-                            
-                        now = ball.find_ball(warped_img)
+                        end = (8, 8)
                         
-                        if now == end:
-                            print(f"🏁 Goal reached: {end}")
-                            break
+                        # 初始化預測型控制器 (kp, kd, 物理模擬加速度係數)
+                        controller = PredictiveController(
+                            kp=0.15, ki=0.0, kd=0.03, 
+                            max_tilt=7, accel_gain=80.0, friction=0.95
+                        )
+                        
+                        while True:
+                            raw_frame = picam2.capture_array()
+                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                             
-                        try:
-                            path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
-                            if not path_nodes or len(path_nodes) < 2:
-                                time.sleep(0.2)
+                            # 1. 抓取變形影像與二值化牆壁圖 (Thresh Img)
+                            warped_img = extractor.wrap(frame)
+                            if warped_img is None:
+                                time.sleep(0.01) 
                                 continue
                                 
-                            next_dir = m.getDirection(path_nodes[0], path_nodes[1])
-                            send_time(arduino, next_dir - 1, step_delay)
+                            thresh_img = extractor._extract_graph(warped_img)
                             
-                            time.sleep(step_delay / 1000.0)
+                            # 2. 獲取球的像素位置
+                            ball_px = ball.get_ball_pixel_position(warped_img)
                             
-                        except KeyError:
-                            time.sleep(0.2)
+                            # 3. 取得目前 BFS 路徑
+                            # 我們使用狀態估測器的濾波位置來計算當前在哪個網格，避免影像雜訊導致頻繁重算路徑
+                            h, w = warped_img.shape[:2]
+                            cell_w, cell_h = w / 9.0, h / 9.0
+                            est_x, est_y = controller.estimator.x, controller.estimator.y
+                            
+                            now_cell = (
+                                max(0, min(int(est_y / cell_h), 8)), 
+                                max(0, min(int(est_x / cell_w), 8))
+                            )
+                            
+                            if now_cell == end:
+                                print("🏁 已抵達終點！")
+                                break
+                                
+                            try:
+                                path_nodes = m.BFS_2(m.node_dict[now_cell], m.node_dict[end])
+                                if not path_nodes or len(path_nodes) < 2:
+                                    time.sleep(0.05)
+                                    continue
+                                
+                                # 4. 透過預測控制器取得控制指令與除錯資訊
+                                cmd_str, debug_info = controller.get_control_command(
+                                    ball_px, 
+                                    time.perf_counter(), 
+                                    path_nodes, 
+                                    warped_img, 
+                                    thresh_img, 
+                                    debug_draw=True
+                                )
+                                
+                                # 5. 發送至 Arduino
+                                arduino.send_line(cmd_str)
+                                
+                                # 6. 畫出預測軌跡與偵測視覺效果 (極致美觀)
+                                if debug_info is not None:
+                                    state = debug_info["state"]
+                                    target = debug_info["target"]
+                                    nominal_traj = debug_info["nominal_traj"]
+                                    final_traj = debug_info["final_traj"]
+                                    
+                                    # 畫出當前濾波位置 (黃色) 與目標點 (藍色)
+                                    cv2.circle(warped_img, (int(state[0]), int(state[1])), 6, (0, 255, 255), -1)
+                                    cv2.circle(warped_img, (int(target[0]), int(target[1])), 8, (255, 0, 0), -1)
+                                    
+                                    # 畫出預測軌跡：名義軌跡 (紅色點)、最終採取軌跡 (綠色點)
+                                    for pt in nominal_traj:
+                                        cv2.circle(warped_img, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
+                                    for pt in final_traj:
+                                        cv2.circle(warped_img, (int(pt[0]), int(pt[1])), 3, (0, 255, 0), -1)
+                                        
+                                    cv2.imshow("Predictive Trajectory Preview", warped_img)
+                                
+                                # 點按 'q' 鍵可手動中斷
+                                key = cv2.waitKey(1) & 0xFF
+                                if key == ord('q'):
+                                    break
+                                    
+                                time.sleep(0.03) # 高頻率控制，降低延遲影響
+                                
+                            except KeyError:
+                                time.sleep(0.05)
+                                
+                        arduino.send('q')
+
                             
                     arduino.send('q')
 
