@@ -310,7 +310,7 @@ if __name__ == "__main__":
                                 
                                 output_x = kp * err_x + ki * integral_x + kd * deriv_x
                                 output_y = kp * err_y + ki * integral_y + kd * deriv_y
-                                
+                                print (f"output: ({output_x:.1f}, {output_y:.1f}), error: ({err_x:.1f}, {err_y:.1f})")
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
