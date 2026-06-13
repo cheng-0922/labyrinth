@@ -317,7 +317,7 @@ if __name__ == "__main__":
                                 if not next_node.is_t_junction():
                                     step = 8
                                 else:
-                                    step = 2
+                                    step = 3 
                                 if abs(output_x**2+output_y**2) < 1:
                                     if abs(output_x) > abs(output_y):
                                         if output_x > 0:

@@ -17,7 +17,7 @@ class MazeGraphExtractor:
         self.params = {
             "wall_threshold": wall_threshold,
             "inset_ratio": 0.30,
-            "thickness_ratio": 0.12,
+            "thickness_ratio": 0.14,
             "contrast_alpha": 1.7,
             "black_v_max": 130,
             "adaptive_C": 4,
