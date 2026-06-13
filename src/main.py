@@ -332,8 +332,8 @@ if __name__ == "__main__":
                                             output_y = -1
                                         output_x = 0
 
-                                angle_x = -int(np.clip(output_x, -step, step))
-                                angle_y = +int(np.clip(output_y, -step, step))
+                                angle_x = +int(np.clip(output_x, -step, step))
+                                angle_y = -int(np.clip(output_y, -step, step))
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
