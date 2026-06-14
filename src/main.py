@@ -34,8 +34,10 @@ params = {
     "kp": 0.15,
     "ki": 0.05,
     "kd": 0.03,
-    "slowstep":0.3,
-    "highstep" :1,
+    "slowstep": 3,
+    "highstep" :8 ,
+    "coefficient_l" : 0.6,
+    "coefficient_h" : 1,
     "compensate" :1,
     "lookahead" : 0.25,
     "delayPID" : 0.1,
@@ -329,10 +331,8 @@ if __name__ == "__main__":
                                 else:
                                     step = params["highstep"]
                                     
-                                
-
-                                angle_x = +int(output_x*step)
-                                angle_y = -int(output_x*step)
+                                angle_x = +int(np.clip(output_x*params["coefficient_l"], -step, step))
+                                angle_y = -int(np.clip(output_x*params["coefficient_h"], -step, step))
                                 
                                 if abs(angle_x**2+angle_y**2) < params["compensate"]:
                                     i = params["compensate"]
