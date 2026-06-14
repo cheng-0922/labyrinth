@@ -359,8 +359,8 @@ if __name__ == "__main__":
 
                 elif key == ord('o') or cmd == 'o':
                     arduino.send('p')
-                    angle_x = params["testangle"]
-                    angle_y = params["testangle"]
+                    angle_x = int(params["testangle"])
+                    angle_y = int(params["testangle"])
                     cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                     arduino.send_line(cmd_str)
                     
