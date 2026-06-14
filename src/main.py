@@ -318,7 +318,7 @@ if __name__ == "__main__":
                                 
                                 i= 1 
                                 slow = False
-                                while i < len(path_nodes):
+                                while i < len(path_nodes)-1:
                                     if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
                                         if path_nodes[i].is_t_junction() or path_nodes[i].is_cross():
                                             slow = True
