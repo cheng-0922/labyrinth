@@ -128,8 +128,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # --- Initialize Class ---
-    extractor = MazeGraphExtractor(maze_size=params["size"], wall_threshold=params["wall_threshold"], debug=args.debug)
-    ball = BallDetector(maze_size = params["size"], debug=args.debug)
+    show_windows = not args.text
+    extractor = MazeGraphExtractor(maze_size=params["size"], wall_threshold=params["wall_threshold"], debug=args.debug, show_windows=show_windows)
+    ball = BallDetector(maze_size=params["size"], debug=args.debug, show_windows=show_windows)
     shared = {"state": 0,"cmd": None}
     threading.Thread(target=cmd_input_loop, daemon=True).start()
 
@@ -148,6 +149,8 @@ if __name__ == "__main__":
             if not args.text: cv2.imshow("Original Image", frame)
             if not args.text: cv2.imshow("Final Warped Maze", warped_img)
             print("✅ 迷宮解析完成！(按任意鍵關閉)")
+            if not args.text:
+                cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
             if raw_graph is not None:
                 # 2.  Maze 
                 my_maze = Maze()
@@ -170,7 +173,6 @@ if __name__ == "__main__":
                         path.append(my_maze.getDirection(my_maze.node_dict[nodelist[nodelist.index(i)].get_index()], my_maze.node_dict[nodelist[nodelist.index(i)+1].get_index()]))
                 print([int(x) for x in path])
                 
-            cv2.waitKey(0) # 靜態圖模式下，無限期等待使用者按鍵
         cv2.destroyAllWindows()
 
     # --- 3. 實體相機模式 ---
@@ -187,7 +189,7 @@ if __name__ == "__main__":
             from picamera2 import Picamera2
             picam2 = Picamera2()
             picam2.start()
-            print("🎥 相機已啟動。(按 's' 解析，按 'q' 離開)")
+            print("🎥 相機已啟動。")
             arduino = ArduinoSerial(PORT, BAUD)
         except ImportError:
             print("❌ 錯誤：找不到 picamera2 模組。若是使用一般電腦，請加上 -i 參數指定圖片測試。")
