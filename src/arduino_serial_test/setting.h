@@ -14,12 +14,13 @@ const int joyYPin = A7;
 const int baseAngleX = 97;
 const int baseAngleY = 90;
 const int swingAngle = 10;
+const int swingAngle_Y = 15;
 
 const int minAngleX = baseAngleX - swingAngle;
 const int maxAngleX = baseAngleX + swingAngle;
 
 const int minAngleY = baseAngleY - swingAngle;
-const int maxAngleY = baseAngleY + swingAngle;
+const int maxAngleY = baseAngleY + swingAngleY;
 
 //joymode
 const int center = 512;
