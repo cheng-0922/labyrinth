@@ -16,7 +16,7 @@ class MazeGraphExtractor:
         # black_v_max : HSV 黑色遮罩
         self.params = {
             "wall_threshold": wall_threshold,
-            "inset_ratio": 0.30,
+            "inset_ratio": 0.35,
             "thickness_ratio": 0.14,
             "contrast_alpha": 1.7,
             "black_v_max": 130,
@@ -285,7 +285,7 @@ class MazeGraphExtractor:
 
         if self.debug:
             
-            cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
-            cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
+             cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
+             cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
 
         return adj_list
