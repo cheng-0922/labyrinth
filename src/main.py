@@ -28,7 +28,7 @@ END_POINT = (8,8)
 cmd_queue = queue.Queue()
 params = {
     "size" : 9,
-    "wall_threshold" : 0.333,
+    "wall_threshold" : 0.3,
     "endpoint" : END_POINT,
 
     "kp": 0.15,
