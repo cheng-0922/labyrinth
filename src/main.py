@@ -316,12 +316,12 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                i= 0 
+                                i= 1 
                                 slow = False
-                                while path_nodes[i]:
-                                    if path_nodes[i].is_t_junction():
-                                        slow = True
-                                    if not path_nodes[i].get_direction(path_nodes[i+1]) == path_nodes[i+1].get_direction(path_nodes[i+2]):
+                                while path_nodes[i+1]:
+                                    if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
+                                        if (path_nodes[i].is_t_junction() or path_nodes[i].is_cross() ):
+                                            slow = True
                                         break
                                     i +=1
                                 if slow:
