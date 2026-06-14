@@ -39,6 +39,8 @@ params = {
     "compensate" :1,
     "lookahead" : 0.25,
     "delayPID" : 0.1,
+    "testangle" : 5,
+    "correctionY" : [1,0]
 }
 param_alias = {
     "w" : "wall_threshold" ,
@@ -47,7 +49,8 @@ param_alias = {
     "c" : "compensate",
     "l" : "lookahead",
     "dt" : "delayPID",
-    "end" : "endpoint"
+    "end" : "endpoint",
+    "cY" : "correctionY"
 }
 def set_params(cmd: str):
         """
@@ -337,9 +340,11 @@ if __name__ == "__main__":
                                     else:
                                         output_y = i if output_y > 0 else -i
                                         output_x = 0
+                                
+                                
 
                                 angle_x = +int(np.clip(output_x, -step, step))
-                                angle_y = -int(np.clip(output_y, -step, step))
+                                angle_y = -int(params["correctionY"][0]*(np.clip(output_y, -step, step))+params["correctionY"][1])
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
@@ -354,8 +359,8 @@ if __name__ == "__main__":
 
                 elif key == ord('o') or cmd == 'o':
                     arduino.send('p')
-                    angle_x = 5
-                    angle_y = 5
+                    angle_x = params["testangle"]
+                    angle_y = params["testangle"]
                     cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                     arduino.send_line(cmd_str)
                     
