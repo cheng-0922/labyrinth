@@ -212,13 +212,15 @@ if __name__ == "__main__":
                 key = cv2.waitKey(1) & 0xFF
                 if key == 27: # ESC Stop Camera  
                     break
-                if cmd == '`':
-                    break
+                
                 
                 # 3. 處理終端機指令 (非阻塞)
                 cmd = None
                 while not cmd_queue.empty():
                     cmd = handle_cmd(cmd_queue.get(), shared, extractor)
+
+                if cmd == '`':
+                    break
 
                 # 4. 模式控制 (結合鍵盤與終端機觸發)
                 if key == ord("r") or cmd == 'r':
