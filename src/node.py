@@ -76,3 +76,8 @@ class Node:
     def printparam(self):
         for s in self.successors:
             print(f"node.index:{self.index}| successor: {s[0].index},direction = {Direction(s[1])},d={s[2]}")
+
+    def turn_on(self, prev, next):
+        if prev.get_direction(self) != self.get_direction(next):
+            return True
+        return False
