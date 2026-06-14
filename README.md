@@ -33,6 +33,10 @@ python main.py --d --t
 
 >> 'j' : JOY
 
+>> 'o' : send a tilt message
+
+>> 'f' : find the ball
+
 >> '`' or esc on window : quit
 
 >> ':': switch to mode 1 - modify maze_extract parameters
