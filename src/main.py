@@ -212,6 +212,8 @@ if __name__ == "__main__":
                 key = cv2.waitKey(1) & 0xFF
                 if key == 27: # ESC Stop Camera  
                     break
+                if cmd == '`':
+                    break
                 
                 # 3. 處理終端機指令 (非阻塞)
                 cmd = None
