@@ -26,17 +26,20 @@ class Timer:
 
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
+END_POINT = (8,8)
 
 def cmd_loop(state,extractor,arduino):
     while True:
         cmd = input(">> ")
         if state == 0:
             if cmd ==':':
+                print("turn to debug extractor")
                 state = 0
             #start auto
             else : arduino.send(cmd)
         if state == 1:
             if cmd =='q':
+                print("back to operation")
                 state = 0
             else : extractor.set_params(cmd)
 
@@ -226,7 +229,55 @@ if __name__ == "__main__":
                                 time.sleep(0.05)
                                 
                         arduino.send('q')
+                elif key == ord('c'):
+                    m = Maze()
+                    warped_img, graph = extractor.process(frame)
+                    if graph is not None:
+                        m.load_from_graph(graph)
+                        arduino.send('p')
+                        time.sleep(0.1)
+                        end = END_POINT
 
+                        while True:
+                            raw_frame = picam2.capture_array()
+                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                            # 1. 抓取變形影像
+                            warped_img = extractor.wrap(frame)
+                            
+                            if warped_img is None:
+                                # 為了不讓畫面死掉，可以選用 cv2.waitKey 稍微維持迴圈
+                                time.sleep(0.01) 
+                                continue
+                            
+                            now = ball.find_ball(warped_img)
+                            if now is None:
+                                continue
+                            
+                            if now == end:
+                                print(" 已抵達終點！")
+                                break
+
+                            try :
+                                path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
+                                Tshape = 0
+                                Tthreshold = 3
+                                def smooth(path_nodes):
+                                    index =0
+                                    Tshapelist = []
+                                    for nodex in path_nodes:
+                                        index +=1
+                                        if len(nodex.adj)==3:
+                                            Tshapelist.append(index)
+                                    return Tshapelist
+                                
+
+                                
+                            except KeyError:
+                                time.sleep(0.1)
+
+                                
+                        arduino.send('q')
+                                
 
                 elif key == ord('p'):
                     m = Maze()
