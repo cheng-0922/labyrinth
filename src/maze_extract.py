@@ -283,9 +283,8 @@ class MazeGraphExtractor:
                     adj_list[(r, c)].append((r + 1, c))
                     adj_list[(r + 1, c)].append((r, c))
 
-        if self.debug:
-            
+        # if self.debug:
             #  cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
-             cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
+        cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
 
         return adj_list
