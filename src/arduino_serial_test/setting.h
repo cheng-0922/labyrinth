@@ -20,7 +20,7 @@ const int minAngleX = baseAngleX - swingAngle;
 const int maxAngleX = baseAngleX + swingAngle;
 
 const int minAngleY = baseAngleY - swingAngle;
-const int maxAngleY = baseAngleY + swingAngleY;
+const int maxAngleY = baseAngleY + swingAngle_Y;
 
 //joymode
 const int center = 512;
