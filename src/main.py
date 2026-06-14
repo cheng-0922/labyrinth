@@ -312,7 +312,7 @@ if __name__ == "__main__":
                                 
                                 output_x = kp * err_x + ki * integral_x + kd * deriv_x
                                 output_y = kp * err_y + ki * integral_y + kd * deriv_y
-                                print(f"output: ({output_x:.1f}, {output_y:.1f}), error: ({err_x:.1f}, {err_y:.1f})")
+                                
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
@@ -343,7 +343,8 @@ if __name__ == "__main__":
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
-                                
+                                if args.debug == True:
+                                    print(f"output: ({output_x:.1f}, {output_y:.1f}), error: ({err_x:.1f}, {err_y:.1f}),I:({integral_x:.1f},{integral_x:.1f}) d:({deriv_x:.1f}, {deriv_y:.1f}), cmd:{cmd_str}")
                                 time.sleep(params["delayPID"])
                                 
                             except KeyError:

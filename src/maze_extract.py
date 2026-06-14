@@ -144,8 +144,8 @@ class MazeGraphExtractor:
                 cv2.circle(debug_img, (int(x), int(y)), int(radius), (0, 255, 0), 2)
                 cv2.circle(debug_img, (int(x), int(y)), 3, (0, 255, 0), -1)
 
-        if self.debug:
-            cv2.imshow("Debug: Found Green Markers", debug_img)
+        # if self.debug:
+        #     cv2.imshow("Debug: Found Green Markers", debug_img)
 
         return np.array(centers, dtype="float32")
 
@@ -208,7 +208,7 @@ class MazeGraphExtractor:
         thresh = cv2.bitwise_or(thresh_h, thresh_v)
 
         if self.debug:
-            cv2.imshow("Debug: CLAHE", enhanced)
+            # cv2.imshow("Debug: CLAHE", enhanced)
             cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
         
         return thresh
@@ -231,8 +231,8 @@ class MazeGraphExtractor:
         inset_x = round(cell_w * self.params["inset_ratio"])
         inset_y = round(cell_h * self.params["inset_ratio"])
 
-        debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR) if self.debug else None
-
+        # debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR) if self.debug else None
+        debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
         def check_wall(roi, label, debug_img, x1, y1, x2, y2):
             
             #判斷 ROI 是否含有牆壁。
@@ -285,7 +285,7 @@ class MazeGraphExtractor:
 
         if self.debug:
             
-             cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
+            #  cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
              cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
 
         return adj_list
