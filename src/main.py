@@ -34,8 +34,8 @@ params = {
     "kp": 0.15,
     "ki": 0.05,
     "kd": 0.03,
-    "slowstep":3,
-    "highstep" :8,
+    "slowstep":0.3,
+    "highstep" :1,
     "compensate" :1,
     "lookahead" : 0.25,
     "delayPID" : 0.1,
@@ -329,17 +329,19 @@ if __name__ == "__main__":
                                 else:
                                     step = params["highstep"]
                                     
-                                if abs(output_x**2+output_y**2) < params["compensate"]:
-                                    i = params["compensate"]
-                                    if abs(output_x) > abs(output_y):
-                                        output_x = i if output_x > 0 else -i
-                                        output_y = 0
-                                    else:
-                                        output_y = i if output_y > 0 else -i
-                                        output_x = 0
+                                
 
-                                angle_x = +int(np.clip(output_x, -step, step))
-                                angle_y = -int(np.clip(output_y, -step, step))
+                                angle_x = +int(output_x*step)
+                                angle_y = -int(output_x*step)
+                                
+                                if abs(angle_x**2+angle_y**2) < params["compensate"]:
+                                    i = params["compensate"]
+                                    if abs(angle_x) > abs(angle_y):
+                                        angle_x = i if angle_x > 0 else -i
+                                        angle_y = 0
+                                    else:
+                                        angle_y = i if angle_y > 0 else -i
+                                        angle_x = 0
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
