@@ -444,7 +444,15 @@ if __name__ == "__main__":
                                 if not path_nodes or len(path_nodes) < 2:
                                     time.sleep(0.05)
                                     continue
-
+                                i= 1 
+                                slow = False
+                                while i < len(path_nodes)-1:
+                                    if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
+                                        if path_nodes[i].is_t_junction() or path_nodes[i].is_cross():
+                                            slow = True
+                                        break
+                                    i +=1
+                                    
                                 target_coord = path_nodes[1].get_index()
                                 h, w = warped_img.shape[:2]
                                 cell_w, cell_h = w / 9.0, h / 9.0
@@ -488,14 +496,6 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                i= 1 
-                                slow = False
-                                while i < len(path_nodes)-1:
-                                    if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
-                                        if path_nodes[i].is_t_junction() or path_nodes[i].is_cross():
-                                            slow = True
-                                        break
-                                    i +=1
                                 if slow:
                                     step = params["slowstep"]
                                 else:
