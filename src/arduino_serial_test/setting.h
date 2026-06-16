@@ -5,6 +5,11 @@ Servo servoY;
 
 void joyControl();
 
+const int bottomPinQ = 46;
+const int bottomPinM = 48;
+const int bottomPinP = 50;
+const int bottomPinJ = 52;
+
 const int servoXPin = A5;
 const int servoYPin = A3;
 
@@ -211,5 +216,50 @@ void pControl(String msg){
     // 讓馬達即時到位 
     servoX.write(targetAngleX); 
     servoY.write(targetAngleY); 
+  }
+}
+
+bool qMode = false;
+bool mMode = false;
+bool pMode = false;
+bool jMode = false;
+
+void readBottom(){
+  int bottomState_Q = digitalRead(bottomPinQ);
+  int bottomState_M = digitalRead(bottomPinM);
+  int bottomState_P = digitalRead(bottomPinP);
+  int bottomState_J = digitalRead(bottomPinJ);
+
+  if (bottomState_Q == LOW) {
+    qMode = true;
+    if (qMode) {
+      Serial.print("q");
+      delay(1000);
+      qMode = false;
+    }
+  }
+  if (bottomState_M == LOW) {
+    mMode = true;
+    if (mMode) {
+      Serial.print("m");
+      delay(1000);
+      mMode = false;
+    }
+  }
+  if (bottomState_P == LOW) {
+    pMode = true;
+    if (pMode) {
+      Serial.print("p");
+      delay(1000);
+      pMode = false;
+    }
+  }
+  if (bottomState_J == LOW) {
+    jMode = true;
+    if (jMode) {
+      Serial.print("j");
+      delay(1000);
+      jMode = false;
+    }
   }
 }

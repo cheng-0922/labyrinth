@@ -32,13 +32,13 @@ params = {
     "wall_threshold" : 0.3,
     "endpoint" : END_POINT,
 
-    "kp": 0.3,
+    "kp": 0.28,
     "ki": 0.05,
     "kd": 0.03,
-    "slowstep":3,
+    "slowstep":4,
     "highstep" :8,
     "compensate" :1,
-    "lookahead" : 0.5,
+    "lookahead" : 0.6,
     "delayPID" : 0.1,
     "testangle" : 5,
     "correctionY" : [1,0]
@@ -228,6 +228,7 @@ if __name__ == "__main__":
                 msg = arduino.read()
                 if msg:
                     print("Arduino:", msg)
+                    cmd_queue.put(msg)  # 把 Arduino 的訊息也放入 cmd_queue，讓主迴圈統一處理
                 
                 # 2. 更新相機與視窗
                 raw_frame = picam2.capture_array()
