@@ -37,6 +37,7 @@ params = {
     "kd": 0.03,
     "slowstep":4,
     "highstep" :8,
+    "slower" : 0.8,
     "compensate" :1,
     "lookahead" : 0.6,
     "delayPID" : 0.1,
@@ -481,7 +482,9 @@ if __name__ == "__main__":
                                 
                                 output_x = kp * err_x + ki * integral_x + kd * deriv_x
                                 output_y = kp * err_y + ki * integral_y + kd * deriv_y
-                                
+                                if slow:
+                                    output_x *= params["slower"]
+                                    output_y *= params["slower"]
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
