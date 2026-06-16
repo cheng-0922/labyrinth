@@ -388,8 +388,11 @@ if __name__ == "__main__":
                         
                         while True:
                             key = cv2.waitKey(1) & 0xFF
+                            msg = arduino.read()
+                            if msg:
+                                print("Arduino:", msg)
+                                cmd_queue.put(msg) 
                             
-                            # 檢查終端機是否發送中斷指令 (解決文字模式無法退出的問題)
                             if not cmd_queue.empty():
                                 sub_cmd = cmd_queue.get()
                                 if sub_cmd == 'q':
