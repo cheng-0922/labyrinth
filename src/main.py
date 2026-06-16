@@ -265,7 +265,7 @@ if __name__ == "__main__":
                 # 3. 處理終端機指令 (非阻塞)
                 cmd = None
                 while not cmd_queue.empty():
-                    cmd = handle_cmd(cmd_queue.get(), shared, extractor)
+                    cmd = handle_cmd(cmd_queue.get(), shared, extractor, ball)
 
                 if cmd == '`':
                     break
