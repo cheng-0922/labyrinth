@@ -31,13 +31,13 @@ params = {
     "wall_threshold" : 0.3,
     "endpoint" : END_POINT,
 
-    "kp": 0.15,
+    "kp": 0.3,
     "ki": 0.05,
     "kd": 0.03,
     "slowstep":3,
     "highstep" :8,
     "compensate" :1,
-    "lookahead" : 0.25,
+    "lookahead" : 0.5,
     "delayPID" : 0.1,
     "testangle" : 5,
     "correctionY" : [1,0]
