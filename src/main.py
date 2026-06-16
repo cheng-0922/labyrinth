@@ -38,6 +38,7 @@ params = {
     "kps" : 0.6,
     "slowstep":4,
     "highstep" :8,
+    "slower" : 0.8,
     "compensate" :1,
     "lookahead" : 0.6,
     "delayPID" : 0.1,
@@ -91,7 +92,7 @@ def cmd_input_loop():
         if cmd:
             cmd_queue.put(cmd)
 
-def handle_cmd(cmd, shared, extractor):
+def handle_cmd(cmd, shared, extractor, ball):
     if shared["state"] == 0:
         if cmd ==':':
             shared["state"] = 1
@@ -99,6 +100,9 @@ def handle_cmd(cmd, shared, extractor):
         elif cmd =='/':
             shared["state"] = 2
             print("state 0 change to state 2")
+        elif cmd =='.':
+            shared["state"] = 3
+            print("state 0 change to state 3")
     elif shared["state"] == 1:
         if cmd =='q':
             shared["state"] = 0
@@ -106,6 +110,9 @@ def handle_cmd(cmd, shared, extractor):
         elif cmd =='2' :
             shared["state"] = 2
             print("state 1 change to state 2")
+        elif cmd =='3':
+            shared["state"] = 3
+            print("state 0 change to state 3")
         elif cmd == '?':
             print(extractor.params)
         else : extractor.set_params(cmd)
@@ -116,9 +123,25 @@ def handle_cmd(cmd, shared, extractor):
         elif cmd == '1':
             shared["state"] = 1
             print("state 2 change to state 1")
+        elif cmd =='3':
+            shared["state"] = 3
+            print("state 0 change to state 3")
         elif cmd == '?':
             print(params)
         else : set_params(cmd)
+    elif shared["state"] == 3:
+        if cmd =='q':
+            shared["state"] = 0
+            print("state 1 change to state 0")
+        elif cmd =='2' :
+            shared["state"] = 2
+            print("state 1 change to state 2")
+        elif cmd =='1':
+            shared["state"] = 1
+            print("state 0 change to state 1")
+        elif cmd == '?':
+            print(ball.params)
+        else : ball.set_params(cmd)
     return cmd
 
 def show_treasure(warped_img, treasure_dict, text, current_score=0):
@@ -244,7 +267,7 @@ if __name__ == "__main__":
                 # 3. 處理終端機指令 (非阻塞)
                 cmd = None
                 while not cmd_queue.empty():
-                    cmd = handle_cmd(cmd_queue.get(), shared, extractor)
+                    cmd = handle_cmd(cmd_queue.get(), shared, extractor, ball)
 
                 if cmd == '`':
                     break
@@ -422,7 +445,15 @@ if __name__ == "__main__":
                                 if not path_nodes or len(path_nodes) < 2:
                                     time.sleep(0.05)
                                     continue
-
+                                i= 1 
+                                slow = False
+                                while i < len(path_nodes)-1:
+                                    if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
+                                        if path_nodes[i].is_t_junction() or path_nodes[i].is_cross():
+                                            slow = True
+                                        break
+                                    i +=1
+                                    
                                 target_coord = path_nodes[1].get_index()
                                 h, w = warped_img.shape[:2]
                                 cell_w, cell_h = w / 9.0, h / 9.0
@@ -472,13 +503,16 @@ if __name__ == "__main__":
                                 
                                 output_x = kp * err_x + ki * integral_x + kd * deriv_x
                                 output_y = kp * err_y + ki * integral_y + kd * deriv_y
-                                
+                                if slow:
+                                    output_x *= params["slower"]
+                                    output_y *= params["slower"]
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                if slow: 
-                                    output_x *= params["kps"]
-                                    output_y *= params["kps"]
+                                if slow:
+                                    step = params["slowstep"]
+                                else:
+                                    step = params["highstep"]
                                     
                                 if abs(output_x**2+output_y**2) < params["compensate"]:
                                     i = params["compensate"]

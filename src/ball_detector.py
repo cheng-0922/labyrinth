@@ -9,6 +9,58 @@ class BallDetector:
         self.debug = debug
         self.show_windows = show_windows
         self.ref_gray = None
+    params={
+       "redl" : 10,
+       "redh" : 170,
+       "redsaturate" : 100,
+       "redvibrant" : 50,
+    }
+    param_alias = {
+        "rl" : "redl",
+        "rh" : "redh",
+        "rs" : "redsaturate",
+        "rv" : "redvibrant",
+    }
+    def get_params(self):
+        print(self.params)
+
+    def set_params(self, cmd: str):
+        """
+        支援：
+        - w=0.45
+        - w 0.45
+        - wall=0.45 inset=0.3
+        - d (切換 debug 模式)
+        """
+        cmd = cmd.strip()
+        
+        # 處理單獨的 debug 切換指令
+        if cmd == "d":
+            self.debug = not self.debug
+            print(f"Debug mode: {'ON' if self.debug else 'OFF'}")
+            return
+
+        # 把 "=" 統一換成空格，統一格式，例如 "w=0.45 i 0.3" -> "w 0.45 i 0.3"
+        normalized_cmd = cmd.replace("=", " ")
+        tokens = normalized_cmd.split()
+
+        # 兩兩一組進行解析 (key, value)
+        for i in range(0, len(tokens) - 1, 2):
+            k = tokens[i]
+            v_str = tokens[i+1]
+
+            key = self.param_alias.get(k, k)
+
+            if key not in self.params:
+                print(f"Unknown param: {key}")
+                continue
+
+            try:
+                v = float(v_str)
+                self.params[key] = v
+                print(f"[{key}] -> {v}")
+            except ValueError:
+                print(f"Invalid value for {key}: {v_str}")
 
     def set_reference(self, warped_img):
         """存入空迷宮參考影像（背景相減模式用）"""
@@ -26,8 +78,8 @@ class BallDetector:
  
         # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
         hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
-        mask1 = cv2.inRange(hsv, np.array([0,   100, 50]), np.array([10,  255, 255]))
-        mask2 = cv2.inRange(hsv, np.array([170, 100, 50]), np.array([180, 255, 255]))
+        mask1 = cv2.inRange(hsv, np.array([0,self.params["redsaturate"], self.params["redvibrant"]]), np.array([self.params["redl"],  255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([self.params["redh"], self.params["redsaturate"], self.params["redvibrant"]]), np.array([180, 255, 255]))
         red_mask = cv2.bitwise_or(mask1, mask2)
         # ────────────────────────────────────────────────────────────────────
  
@@ -93,8 +145,8 @@ class BallDetector:
 
         # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
         hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
-        mask1 = cv2.inRange(hsv, np.array([0,   100, 50]), np.array([10,  255, 255]))
-        mask2 = cv2.inRange(hsv, np.array([170, 100, 50]), np.array([180, 255, 255]))
+        mask1 = cv2.inRange(hsv, np.array([0,self.params["redsaturate"], self.params["redvibrant"]]), np.array([self.params["redl"],  255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([self.params["redh"], self.params["redsaturate"], self.params["redvibrant"]]), np.array([180, 255, 255]))
         red_mask = cv2.bitwise_or(mask1, mask2)
         # ────────────────────────────────────────────────────────────────────
 
