@@ -15,7 +15,7 @@ class BallDetector:
        "redsaturate" : 100,
        "redvibrant" : 50,
     }
-    params_alias = {
+    param_alias = {
         "rl" : "redl",
         "rh" : "redh",
         "rs" : "redsaturate",
