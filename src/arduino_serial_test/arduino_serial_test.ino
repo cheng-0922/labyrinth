@@ -10,13 +10,18 @@ void setup() {
   servoX.write(baseAngleX);
   servoY.write(baseAngleY);
 
+  pinMode(bottomPinQ, INPUT_PULLUP);
+  pinMode(bottomPinM, INPUT_PULLUP);
+  pinMode(bottomPinP, INPUT_PULLUP);
+  pinMode(bottomPinJ, INPUT_PULLUP);
+
   delay(500);
 
   Serial.println("READY");
 }
 char cmd = 'r';
 void loop() {
-
+  readBottom();
   if(Serial.available()) {
     cmd = Serial.read();
   }
@@ -26,6 +31,7 @@ void loop() {
   }
   // TEST DEAD PATH
   if (cmd == 't') {
+    readBottom();
     reset();
     delay(100);
     Serial.println("START DEAD PATH");
@@ -47,6 +53,7 @@ void loop() {
   }
   // SERIAL DIR TIME
   if (cmd == 's') {
+    readBottom();
     if(Serial.available()){
       String msg_dir =Serial.readStringUntil('\n');
       msg_dir.trim();
@@ -64,6 +71,7 @@ void loop() {
   if(cmd == 'p'){
     reset();
     while (true) {
+      readBottom();
       if (Serial.available() > 0) {
         String msg = Serial.readStringUntil('\n');
         msg.trim();
@@ -88,6 +96,7 @@ void loop() {
     Serial.println("JOY");
     reset();
     while (true) {
+      readBottom();
       joyControl();
       if (Serial.available()) {
         char c = Serial.read();

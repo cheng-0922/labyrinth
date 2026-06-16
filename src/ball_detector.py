@@ -4,9 +4,10 @@ import numpy as np
 
 class BallDetector:
 
-    def __init__(self, maze_size=9, debug=False):
+    def __init__(self, maze_size=9, debug=False, show_windows=True):
         self.maze_size = maze_size
         self.debug = debug
+        self.show_windows = show_windows
         self.ref_gray = None
 
     def set_reference(self, warped_img):
@@ -33,7 +34,7 @@ class BallDetector:
         # ── Step 2：取遮罩重心 ────────────────────────────────────────────────
         M = cv2.moments(red_mask)
         if M["m00"] == 0:
-            if self.debug:
+            if self.debug and self.show_windows:
                 cv2.imshow("Debug: Red Mask", red_mask)
             return None
  
@@ -44,7 +45,7 @@ class BallDetector:
         row = max(0, min(int(cy / cell_h), self.maze_size - 1))
         col = max(0, min(int(cx / cell_w), self.maze_size - 1))
  
-        if self.debug:
+        if self.debug and self.show_windows:
             debug_img = warped_img.copy()
             cv2.circle(debug_img, (cx, cy), 5, (0, 255, 0), -1)
             cv2.putText(debug_img, f"({row},{col})",
@@ -68,7 +69,7 @@ class BallDetector:
         # ── Step 2：取遮罩重心 ────────────────────────────────────────────────
         M = cv2.moments(red_mask)
         if M["m00"] == 0:
-            if self.debug:
+            if self.debug and self.show_windows:
                 cv2.imshow("Debug: Red Mask", red_mask)
             return None
  
@@ -134,7 +135,7 @@ class BallDetector:
         # ────────────────────────────────────────────────────────────────────
 
         if best is None:
-            if self.debug:
+            if self.debug and self.show_windows:
                 cv2.imshow("Debug: Red Mask", red_mask)
             return None
 
@@ -142,7 +143,7 @@ class BallDetector:
         row = max(0, min(int(cy / cell_h), self.maze_size - 1))
         col = max(0, min(int(cx / cell_w), self.maze_size - 1))
 
-        if self.debug:
+        if self.debug and self.show_windows:
             debug_img = warped_img.copy()
             cv2.circle(debug_img, (cx, cy), int(r_expected), (0, 255, 0), 2)
             cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)
