@@ -120,6 +120,31 @@ def handle_cmd(cmd, shared, extractor):
         else : set_params(cmd)
     return cmd
 
+def show_treasure(warped_img, treasure_dict, text):
+# --- 新增：繪製寶藏與分數 ---
+    h, w = warped_img.shape[:2]
+    cell_w, cell_h = w / params["size"], h / params["size"]
+    
+    for t_pos, t_score in treasure_dict.items():
+        if t_score > 0:  # 僅顯示尚未獲得的寶藏
+            t_r, t_c = t_pos
+            # 將矩陣座標轉換為像素座標 (取網格中心點)
+            px_x = int((t_c + 0.5) * cell_w)
+            px_y = int((t_r + 0.5) * cell_h)
+            
+            # 畫出圓形 (黃色)
+            radius = int(min(cell_w, cell_h) * 0.3)
+            cv2.circle(warped_img, (px_x, px_y), radius, (0, 215, 255), -1)
+            
+            # 標示分數 (紅色字體)
+            cv2.putText(warped_img, str(t_score), (px_x - 10, px_y + 5), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+
+    # 在非文字模式下更新視窗顯示
+    if not text:
+        cv2.imshow("Game Mode", warped_img)
+    # ---------------------------
+
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
     parser = argparse.ArgumentParser(description="Maze Scanner")
@@ -289,7 +314,7 @@ if __name__ == "__main__":
                     while True:
                         inner_key = cv2.waitKey(1) & 0xFF
 
-                        # 檢查終端機是否發送中斷指令 (解決文字模式無法退出的問題)
+                        # 檢查終端機是否發送中斷指令
                         if not cmd_queue.empty():
                             sub_cmd = cmd_queue.get()
                             if sub_cmd == 'q':
@@ -306,6 +331,8 @@ if __name__ == "__main__":
                             time.sleep(0.01)
                             continue
 
+                        show_treasure(warped_img, treasure_dict, args.text)
+
                         now = ball.find_ball(warped_img)
                         if now is None:
                             continue
@@ -316,17 +343,19 @@ if __name__ == "__main__":
                             break
 
                         try:
-                            # print(f"now:{now}")
                             s = treasure_dict.get(now, 0)
                             if s > 0:
                                 score += s
                                 print(f"得到{s}，共{score}分")
-                                treasure_dict[now] = 0
+                                treasure_dict[now] = 0  # 避免重複計分
                             time.sleep(0.001)
 
                         except KeyError:
                             time.sleep(0.1)
-
+                            
+                    # 離開迴圈後可選擇關閉遊戲視窗
+                    if not args.text:
+                        cv2.destroyWindow("Game Mode")
                 elif key == ord("q") or cmd == 'q':
                     arduino.send("q")
 
