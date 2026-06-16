@@ -229,71 +229,103 @@ if __name__ == "__main__":
                 elif key == ord("j") or cmd == 'j':
                     arduino.send("j")
                     score = 0
+
+                    # ensure we have a warped image before locating the ball
+                    warped_img = extractor.wrap(frame)
+                    if warped_img is None:
+                        print("無法取得校正影像，請確認定位點可見 (j)")
+                        continue
+
                     now = ball.find_ball(warped_img)
-                    if has_graph:
-                        path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
-                        turning = []
-                        while i < len(path_nodes)-1:
-                            if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
-                               turning.append(path_nodes[i])
-                            i +=1
-                        length = len(turning)
-                        start = 2
-                        stop = 6
-                        step = 1    
-                        treasure = random.randrange(start, stop, step)
-                        treasure_list = []
-                        if length < 2: continue
-                        for i in range(treasure):
-                            treasure_list.append(turning[random.randrange(1,length, 1)])
-                        treasure_index = [i.get_index() for i in treasure_list]
-                        print (treasure_index)
-                        treasure_dict = {k:random.gauss(0,1) for k in treasure_index }
-                        total_val = sum(treasure_dict.values())
-                        if total_val == 0: total_val = 1
-                        for k in treasure_dict:
-                            treasure_dict[k] = int(100 / total_val * treasure_dict[k])
-                        while True:
-                            key = cv2.waitKey(1) & 0xFF
-                            
-                            # 檢查終端機是否發送中斷指令 (解決文字模式無法退出的問題)
-                            if not cmd_queue.empty():
-                                sub_cmd = cmd_queue.get()
-                                if sub_cmd == 'q':
-                                    break
-                                    
-                            if key == ord('q'):
-                                break
-                                
-                            raw_frame = picam2.capture_array()
-                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                            warped_img = extractor.wrap(frame)
-                            
-                            if warped_img is None:
-                                time.sleep(0.01) 
-                                continue
-                            
-                            now = ball.find_ball(warped_img)
-                            if now is None:
-                                continue
-                            
-                            if now == end:
-                                print("已抵達終點！")
-                                print (f"分數為 {score}" )
+                    if now is None:
+                        print("未偵測到球的位置 (j)")
+                        continue
+
+                    if not has_graph:
+                        print("尚未掃描迷宮，請先按 'm' 掃描")
+                        continue
+
+                    # use configured endpoint
+                    end = params.get("endpoint", END_POINT)
+
+                    if now not in m.node_dict or end not in m.node_dict:
+                        print("目前位置或終點不在節點字典中")
+                        continue
+
+                    path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
+                    if not path_nodes or len(path_nodes) < 2:
+                        print("找不到路徑")
+                        continue
+
+                    turning = []
+                    idx = 1
+                    while idx < len(path_nodes) - 1:
+                        if path_nodes[idx].turn_on(path_nodes[idx-1], path_nodes[idx+1]):
+                            turning.append(path_nodes[idx])
+                        idx += 1
+
+                    length = len(turning)
+                    start = 2
+                    stop = 6
+                    step = 1
+                    treasure = random.randrange(start, stop, step)
+                    treasure_list = []
+                    if length < 2:
+                        print("轉向點不足，無法生成寶藏")
+                        continue
+
+                    for _ in range(treasure):
+                        treasure_list.append(turning[random.randrange(1, length, 1)])
+
+                    treasure_index = [tn.get_index() for tn in treasure_list]
+                    print(treasure_index)
+                    treasure_dict = {k: random.gauss(0, 1) for k in treasure_index}
+                    total_val = sum(treasure_dict.values())
+                    if total_val == 0:
+                        total_val = 1
+                    for k in list(treasure_dict.keys()):
+                        treasure_dict[k] = int(100 / total_val * treasure_dict[k])
+
+                    while True:
+                        inner_key = cv2.waitKey(1) & 0xFF
+
+                        # 檢查終端機是否發送中斷指令 (解決文字模式無法退出的問題)
+                        if not cmd_queue.empty():
+                            sub_cmd = cmd_queue.get()
+                            if sub_cmd == 'q':
                                 break
 
-                            try:
-                                print(f"now:{now}")
-                                s = treasure_dict.get(now, 0)
-                                if s > 0 :
-                                    score += s
-                                    print (f"得到{s}，共{score}分")   
-                                    treasure_dict[now] = 0
-                                time.sleep(0.001)
-                                
-                                
-                            except KeyError:
-                                time.sleep(0.1)
+                        if inner_key == ord('q'):
+                            break
+
+                        raw_frame = picam2.capture_array()
+                        frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                        warped_img = extractor.wrap(frame)
+
+                        if warped_img is None:
+                            time.sleep(0.01)
+                            continue
+
+                        now = ball.find_ball(warped_img)
+                        if now is None:
+                            continue
+
+                        if now == end:
+                            print("已抵達終點！")
+                            print(f"分數為 {score}")
+                            break
+
+                        try:
+                            print(f"now:{now}")
+                            s = treasure_dict.get(now, 0)
+                            if s > 0:
+                                score += s
+                                print(f"得到{s}，共{score}分")
+                                treasure_dict[now] = 0
+                            time.sleep(0.001)
+
+                        except KeyError:
+                            time.sleep(0.1)
 
                 elif key == ord("q") or cmd == 'q':
                     arduino.send("q")
