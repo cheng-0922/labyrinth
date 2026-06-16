@@ -240,7 +240,7 @@ class MazeGraphExtractor:
                 return False  # 空 ROI 視為無牆（邊界安全保護）
             fill = cv2.countNonZero(roi) / roi.size
             is_wall = fill >= self.params["wall_threshold"]
-            if self.debug and self.show_windows and debug_img is not None:
+            if self.show_windows and debug_img is not None:
                 color = (0, 0, 255) if is_wall else (0, 255, 0)
                 cv2.rectangle(debug_img, (x1, y1), (x2, y2), color, -1)
                 # 顯示實際填充率，方便現場微調 wall_threshold
