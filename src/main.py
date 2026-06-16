@@ -6,6 +6,7 @@ import time
 import threading
 import numpy as np
 import queue
+import random
 from maze import Maze
 from node import Node
 from maze_extract import MazeGraphExtractor 
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     ball = BallDetector(maze_size=params["size"], debug=args.debug, show_windows=show_windows)
     shared = {"state": 0,"cmd": None}
     threading.Thread(target=cmd_input_loop, daemon=True).start()
-
+    random.seed()
     # --- 2. 靜態圖片模式 ---
     if args.image:
         print(f"📷 正在讀取圖片: {args.image}")
@@ -227,6 +228,73 @@ if __name__ == "__main__":
                     arduino.send("r")
                 elif key == ord("j") or cmd == 'j':
                     arduino.send("j")
+                    score = 0
+                    now = ball.find_ball(warped_img)
+                    if has_graph:
+                        path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
+                        turning = []
+                        while i < len(path_nodes)-1:
+                            if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
+                               turning.append(path_nodes[i])
+                            i +=1
+                        length = len(turning)
+                        start = 2
+                        stop = 6
+                        step = 1    
+                        treasure = random.randrange(start, stop, step)
+                        treasure_list = []
+                        if length < 2: continue
+                        for i in range(treasure):
+                            treasure_list.append(turning[random.randrange(1,length, 1)])
+                        treasure_index = [i.get_index() for i in treasure_list]
+                        print (treasure_index)
+                        treasure_dict = {k:random.gauss(0,1) for k in treasure_index }
+                        total_val = sum(treasure_dict.values())
+                        if total_val == 0: total_val = 1
+                        for k in treasure_dict:
+                            treasure_dict[k] = int(100 / total_val * treasure_dict[k])
+                        while True:
+                            key = cv2.waitKey(1) & 0xFF
+                            
+                            # 檢查終端機是否發送中斷指令 (解決文字模式無法退出的問題)
+                            if not cmd_queue.empty():
+                                sub_cmd = cmd_queue.get()
+                                if sub_cmd == 'q':
+                                    break
+                                    
+                            if key == ord('q'):
+                                break
+                                
+                            raw_frame = picam2.capture_array()
+                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
+                            warped_img = extractor.wrap(frame)
+                            
+                            if warped_img is None:
+                                time.sleep(0.01) 
+                                continue
+                            
+                            now = ball.find_ball(warped_img)
+                            if now is None:
+                                continue
+                            
+                            if now == end:
+                                print("已抵達終點！")
+                                print (f"分數為 {score}" )
+                                break
+
+                            try:
+                                print(f"now:{now}")
+                                s = treasure_dict.get(now, 0)
+                                if s > 0 :
+                                    score += s
+                                    print (f"得到{s}，共{score}分")   
+                                    treasure_dict[now] = 0
+                                time.sleep(0.001)
+                                
+                                
+                            except KeyError:
+                                time.sleep(0.1)
+
                 elif key == ord("q") or cmd == 'q':
                     arduino.send("q")
 
