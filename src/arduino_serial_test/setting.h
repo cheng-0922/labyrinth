@@ -232,38 +232,30 @@ void readBottom(){
 
   if (bottomState_Q == LOW) {
     qMode = true;
-    mMode = false;
-    pMode = false;
-    jMode = false;
     if (qMode) {
       Serial.print("q");
+      qMode = false;
     }
   }
   if (bottomState_M == LOW) {
-    qMode = false;
     mMode = true;
-    pMode = false;
-    jMode = false;
     if (mMode) {
       Serial.print("m");
+      mMode = false;
     }
   }
   if (bottomState_P == LOW) {
-    qMode = false;
-    mMode = false;
     pMode = true;
-    jMode = false; 
     if (pMode) {
       Serial.print("p");
+      pMode = false;
     }
   }
   if (bottomState_J == LOW) {
-    qMode = false;
-    mMode = false;
-    pMode = false;
     jMode = true;
     if (jMode) {
       Serial.print("j");
+      jMode = false;
     }
   }
 }
