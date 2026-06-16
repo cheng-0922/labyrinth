@@ -90,7 +90,7 @@ def cmd_input_loop():
         if cmd:
             cmd_queue.put(cmd)
 
-def handle_cmd(cmd, shared, extractor):
+def handle_cmd(cmd, shared, extractor, ball):
     if shared["state"] == 0:
         if cmd ==':':
             shared["state"] = 1
@@ -98,6 +98,9 @@ def handle_cmd(cmd, shared, extractor):
         elif cmd =='/':
             shared["state"] = 2
             print("state 0 change to state 2")
+        elif cmd =='.':
+            shared["state"] = 3
+            print("state 0 change to state 3")
     elif shared["state"] == 1:
         if cmd =='q':
             shared["state"] = 0
@@ -105,6 +108,9 @@ def handle_cmd(cmd, shared, extractor):
         elif cmd =='2' :
             shared["state"] = 2
             print("state 1 change to state 2")
+        elif cmd =='3':
+            shared["state"] = 3
+            print("state 0 change to state 3")
         elif cmd == '?':
             print(extractor.params)
         else : extractor.set_params(cmd)
@@ -115,9 +121,25 @@ def handle_cmd(cmd, shared, extractor):
         elif cmd == '1':
             shared["state"] = 1
             print("state 2 change to state 1")
+        elif cmd =='3':
+            shared["state"] = 3
+            print("state 0 change to state 3")
         elif cmd == '?':
             print(params)
         else : set_params(cmd)
+    elif shared["state"] == 3:
+        if cmd =='q':
+            shared["state"] = 0
+            print("state 1 change to state 0")
+        elif cmd =='2' :
+            shared["state"] = 2
+            print("state 1 change to state 2")
+        elif cmd =='1':
+            shared["state"] = 1
+            print("state 0 change to state 1")
+        elif cmd == '?':
+            print(ball.params)
+        else : ball.set_params(cmd)
     return cmd
 
 def show_treasure(warped_img, treasure_dict, text, current_score=0):
