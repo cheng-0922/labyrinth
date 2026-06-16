@@ -35,7 +35,7 @@ params = {
     "kp": 0.28,
     "ki": 0.05,
     "kd": 0.03,
-    "kps" : 0.16,
+    "kps" : 0.6,
     "slowstep":4,
     "highstep" :8,
     "compensate" :1,
@@ -447,10 +447,8 @@ if __name__ == "__main__":
                                     i +=1
                                 if slow:
                                     step = params["slowstep"]
-                                    kp = params["kps"]
                                 else:
                                     step = params["highstep"]
-                                    kp = params["kp"]
 
                                 target_px_x += turn_ahead_x
                                 target_px_y += turn_ahead_y
@@ -475,7 +473,9 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                
+                                if slow: 
+                                    output_x *= params["kps"]
+                                    output_y *= params["kps"]
                                     
                                 if abs(output_x**2+output_y**2) < params["compensate"]:
                                     i = params["compensate"]
