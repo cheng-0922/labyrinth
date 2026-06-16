@@ -35,6 +35,7 @@ params = {
     "kp": 0.28,
     "ki": 0.05,
     "kd": 0.03,
+    "kps" : 0.16,
     "slowstep":4,
     "highstep" :8,
     "compensate" :1,
@@ -436,6 +437,20 @@ if __name__ == "__main__":
                                     
                                     turn_ahead_x = next_dir_c * params["lookahead"] * cell_w
                                     turn_ahead_y = next_dir_r * params["lookahead"]  * cell_h
+                                i= 1 
+                                slow = False
+                                while i < len(path_nodes)-1:
+                                    if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
+                                        if path_nodes[i].is_t_junction() or path_nodes[i].is_cross():
+                                            slow = True
+                                        break
+                                    i +=1
+                                if slow:
+                                    step = params["slowstep"]
+                                    kp = params["kps"]
+                                else:
+                                    step = params["highstep"]
+                                    kp = params["kp"]
 
                                 target_px_x += turn_ahead_x
                                 target_px_y += turn_ahead_y
@@ -460,18 +475,7 @@ if __name__ == "__main__":
                                 prev_err_x = err_x
                                 prev_err_y = err_y
                                 
-                                i= 1 
-                                slow = False
-                                while i < len(path_nodes)-1:
-                                    if path_nodes[i].turn_on(path_nodes[i-1], path_nodes[i+1]):
-                                        if path_nodes[i].is_t_junction() or path_nodes[i].is_cross():
-                                            slow = True
-                                        break
-                                    i +=1
-                                if slow:
-                                    step = params["slowstep"]
-                                else:
-                                    step = params["highstep"]
+                                
                                     
                                 if abs(output_x**2+output_y**2) < params["compensate"]:
                                     i = params["compensate"]
@@ -485,7 +489,7 @@ if __name__ == "__main__":
                                 
 
                                 angle_x = +int(np.clip(output_x, -step, step))
-                                angle_y = -int(params["correctionY"][0]*(np.clip(output_y, -step-2, step))+params["correctionY"][1])
+                                angle_y = -int(params["correctionY"][0]*(np.clip(output_y, -step, step+2))+params["correctionY"][1])
                                 
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
