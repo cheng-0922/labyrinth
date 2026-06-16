@@ -25,22 +25,19 @@ class Timer:
 PORT = "/dev/ttyACM0"   # Arduino USB 預設；若找不到改成 /dev/ttyACM1
 BAUD = 9600
 END_POINT = (8,8)
-<<<<<<< HEAD
-=======
 cmd_queue = queue.Queue()
 params = {
     "size" : 9,
     "wall_threshold" : 0.3,
     "endpoint" : END_POINT,
->>>>>>> 4f8c52e0029a7753b259c1d981bcadbf96b38cd5
 
-    "kp": 0.3,
+    "kp": 0.28,
     "ki": 0.05,
     "kd": 0.03,
-    "slowstep":3,
+    "slowstep":4,
     "highstep" :8,
     "compensate" :1,
-    "lookahead" : 0.5,
+    "lookahead" : 0.6,
     "delayPID" : 0.1,
     "testangle" : 5,
     "correctionY" : [1,0]
@@ -89,33 +86,8 @@ def set_params(cmd: str):
 def cmd_input_loop():
     while True:
         cmd = input(">> ")
-<<<<<<< HEAD
-        if state == 0:
-            if cmd ==':':
-                print("turn to debug extractor")
-                state = 0
-            #start auto
-            else : arduino.send(cmd)
-        if state == 1:
-            if cmd =='q':
-                print("back to operation")
-                state = 0
-            else : extractor.set_params(cmd)
-
-def send_time(arduino, direction: int, delay_time: int):
-
-    try:        
-        arduino.send_line(str(direction))
-        arduino.send_line(str(delay_time))
-        
-        print(f" 已發送控制訊號 - 方向: {direction}, 延遲: {delay_time} ms")
-        
-    except Exception as e:
-        print(f" 傳送角度控制訊號失敗: {e}")
-=======
         if cmd:
             cmd_queue.put(cmd)
->>>>>>> 4f8c52e0029a7753b259c1d981bcadbf96b38cd5
 
 def handle_cmd(cmd, shared, extractor):
     if shared["state"] == 0:
@@ -290,86 +262,6 @@ if __name__ == "__main__":
                             if key == ord('q'):
                                 break
                                 
-<<<<<<< HEAD
-                            except KeyError:
-                                # 修正：發生 KeyError 時 (如球被錯認為在牆壁上)
-                                # 仍呼叫控制器更新時間與慣性狀態，避免卡死
-                                cmd_str, _ = controller.get_control_command(
-                                    ball_px, time.perf_counter(), [], warped_img, None
-                                )
-                                arduino.send_line(cmd_str)
-                                time.sleep(0.05)
-                                
-                        arduino.send('q')
-                elif key == ord('c'):
-                    m = Maze()
-                    warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        m.load_from_graph(graph)
-                        arduino.send('p')
-                        time.sleep(0.1)
-                        end = END_POINT
-
-                        while True:
-                            raw_frame = picam2.capture_array()
-                            frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
-                            # 1. 抓取變形影像
-                            warped_img = extractor.wrap(frame)
-                            
-                            if warped_img is None:
-                                # 為了不讓畫面死掉，可以選用 cv2.waitKey 稍微維持迴圈
-                                time.sleep(0.01) 
-                                continue
-                            
-                            now = ball.find_ball(warped_img)
-                            if now is None:
-                                continue
-                            
-                            if now == end:
-                                print(" 已抵達終點！")
-                                break
-
-                            try :
-                                path_nodes = m.BFS_2(m.node_dict[now], m.node_dict[end])
-                                Tshape = 0
-                                Tthreshold = 3
-                                def smooth(path_nodes):
-                                    index =0
-                                    Tshapelist = []
-                                    for nodex in path_nodes:
-                                        index +=1
-                                        if len(nodex.adj)==3:
-                                            Tshapelist.append(index)
-                                    return Tshapelist
-                                
-
-                                
-                            except KeyError:
-                                time.sleep(0.1)
-
-                                
-                        arduino.send('q')
-                                
-
-                elif key == ord('p'):
-                    m = Maze()
-                    warped_img, graph = extractor.process(frame)
-                    if graph is not None:
-                        m.load_from_graph(graph)
-                        arduino.send('p')
-                        time.sleep(0.1)
-                        
-                        end = (8, 8)
-                        
-                        # 初始化預測型控制器
-                        controller = PredictiveController(
-                            kp=0.15, ki=0.0, kd=0.03, 
-                            max_tilt=7, accel_gain=80.0, friction=0.95
-                        )
-                        
-                        while True:
-=======
->>>>>>> 4f8c52e0029a7753b259c1d981bcadbf96b38cd5
                             raw_frame = picam2.capture_array()
                             frame = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2BGR)
                             warped_img = extractor.wrap(frame)
