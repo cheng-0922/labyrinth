@@ -120,30 +120,29 @@ def handle_cmd(cmd, shared, extractor):
         else : set_params(cmd)
     return cmd
 
-def show_treasure(warped_img, treasure_dict, text):
-# --- 新增：繪製寶藏與分數 ---
+def show_treasure(warped_img, treasure_dict, text, current_score=0):
     h, w = warped_img.shape[:2]
     cell_w, cell_h = w / params["size"], h / params["size"]
     
+    # 繪製寶藏
     for t_pos, t_score in treasure_dict.items():
-        if t_score > 0:  # 僅顯示尚未獲得的寶藏
+        if t_score > 0:  
             t_r, t_c = t_pos
-            # 將矩陣座標轉換為像素座標 (取網格中心點)
             px_x = int((t_c + 0.5) * cell_w)
             px_y = int((t_r + 0.5) * cell_h)
             
-            # 畫出圓形 (黃色)
             radius = int(min(cell_w, cell_h) * 0.3)
             cv2.circle(warped_img, (px_x, px_y), radius, (0, 215, 255), -1)
             
-            # 標示分數 (紅色字體)
             cv2.putText(warped_img, str(t_score), (px_x - 10, px_y + 5), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
 
-    # 在非文字模式下更新視窗顯示
+    # 繪製當前總分
+    cv2.putText(warped_img, f"Score: {current_score}", (10, 30), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
     if not text:
-        cv2.imshow("Game Mode", warped_img)
-    # ---------------------------
+        cv2.imshow("Final Warped Maze", warped_img)
 
 if __name__ == "__main__":
     # --- 1. 設定啟動參數 ---
@@ -304,18 +303,20 @@ if __name__ == "__main__":
                         treasure_list.append(turning[random.randrange(1, length, 1)])
 
                     treasure_index = [tn.get_index() for tn in treasure_list]
-                    # print(treasure_index)
-                    treasure_dict = {k: random.gauss(1, 1) for k in treasure_index}
+                    
+                    # 修正：確保生成的寶藏分數為正整數
+                    treasure_dict = {k: max(1, int(random.gauss(50, 15))) for k in treasure_index}
                     total_val = sum(treasure_dict.values())
                     if total_val == 0:
                         total_val = 1
                     for k in list(treasure_dict.keys()):
                         treasure_dict[k] = int(100 / total_val * treasure_dict[k])
+                    
                     print(f"treasure: score = {treasure_dict}")
+                    
                     while True:
                         inner_key = cv2.waitKey(1) & 0xFF
 
-                        # 檢查終端機是否發送中斷指令
                         if not cmd_queue.empty():
                             sub_cmd = cmd_queue.get()
                             if sub_cmd == 'q':
@@ -331,8 +332,9 @@ if __name__ == "__main__":
                         if warped_img is None:
                             time.sleep(0.01)
                             continue
-
-                        show_treasure(warped_img, treasure_dict, args.text)
+                            
+                        # 修正：傳入當前分數
+                        show_treasure(warped_img, treasure_dict, args.text, score)
 
                         now = ball.find_ball(warped_img)
                         if now is None:
@@ -356,7 +358,7 @@ if __name__ == "__main__":
                             
                     # 離開迴圈後可選擇關閉遊戲視窗
                     if not args.text:
-                        cv2.destroyWindow("Game Mode")
+                        cv2.destroyWindow("Final Warped Maze")
                 elif key == ord("q") or cmd == 'q':
                     arduino.send("q")
 
