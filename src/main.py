@@ -202,6 +202,7 @@ if __name__ == "__main__":
                 msg = arduino.read()
                 if msg:
                     print("Arduino:", msg)
+                    cmd_queue.put(msg)  # 把 Arduino 的訊息也放入 cmd_queue，讓主迴圈統一處理
                 
                 # 2. 更新相機與視窗
                 raw_frame = picam2.capture_array()

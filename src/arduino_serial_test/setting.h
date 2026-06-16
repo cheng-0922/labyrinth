@@ -234,6 +234,7 @@ void readBottom(){
     qMode = true;
     if (qMode) {
       Serial.print("q");
+      delay(1000);
       qMode = false;
     }
   }
@@ -241,6 +242,7 @@ void readBottom(){
     mMode = true;
     if (mMode) {
       Serial.print("m");
+      delay(1000);
       mMode = false;
     }
   }
@@ -248,6 +250,7 @@ void readBottom(){
     pMode = true;
     if (pMode) {
       Serial.print("p");
+      delay(1000);
       pMode = false;
     }
   }
@@ -255,6 +258,7 @@ void readBottom(){
     jMode = true;
     if (jMode) {
       Serial.print("j");
+      delay(1000);
       jMode = false;
     }
   }
