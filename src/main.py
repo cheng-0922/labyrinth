@@ -278,14 +278,14 @@ if __name__ == "__main__":
                         treasure_list.append(turning[random.randrange(1, length, 1)])
 
                     treasure_index = [tn.get_index() for tn in treasure_list]
-                    print(treasure_index)
-                    treasure_dict = {k: random.gauss(0, 1) for k in treasure_index}
+                    # print(treasure_index)
+                    treasure_dict = {k: random.gauss(1, 1) for k in treasure_index}
                     total_val = sum(treasure_dict.values())
                     if total_val == 0:
                         total_val = 1
                     for k in list(treasure_dict.keys()):
                         treasure_dict[k] = int(100 / total_val * treasure_dict[k])
-
+                    print(f"treasure: score = {treasure_dict}")
                     while True:
                         inner_key = cv2.waitKey(1) & 0xFF
 
@@ -316,7 +316,7 @@ if __name__ == "__main__":
                             break
 
                         try:
-                            print(f"now:{now}")
+                            # print(f"now:{now}")
                             s = treasure_dict.get(now, 0)
                             if s > 0:
                                 score += s
