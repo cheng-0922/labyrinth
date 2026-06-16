@@ -316,7 +316,10 @@ if __name__ == "__main__":
                     
                     while True:
                         inner_key = cv2.waitKey(1) & 0xFF
-
+                        msg = arduino.read()
+                        if msg:
+                            print("Arduino:", msg)
+                            cmd_queue.put(msg) 
                         if not cmd_queue.empty():
                             sub_cmd = cmd_queue.get()
                             if sub_cmd == 'q':
