@@ -3,10 +3,11 @@ import numpy as np
 
 
 class MazeGraphExtractor:
-    def __init__(self, maze_size=9, wall_threshold=0.45, debug=False):
+    def __init__(self, maze_size=9, wall_threshold=0.45, debug=False, show_windows=True):
         
         self.maze_size = maze_size
-        self.debug = debug  
+        self.debug = debug
+        self.show_windows = show_windows
         self.M = None       
         self.warp_dim = None
         # ROI 參數
@@ -16,8 +17,8 @@ class MazeGraphExtractor:
         # black_v_max : HSV 黑色遮罩
         self.params = {
             "wall_threshold": wall_threshold,
-            "inset_ratio": 0.30,
-            "thickness_ratio": 0.12,
+            "inset_ratio": 0.35,
+            "thickness_ratio": 0.14,
             "contrast_alpha": 1.7,
             "black_v_max": 130,
             "adaptive_C": 4,
@@ -122,7 +123,7 @@ class MazeGraphExtractor:
         contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         valid_contours = [c for c in contours if cv2.contourArea(c) > 50]
 
-        if self.debug:
+        if self.debug and self.show_windows:
             # 【除錯畫面 1】顯示綠色遮罩
             cv2.imshow("Debug: Green Mask", green_mask)
 
@@ -144,8 +145,8 @@ class MazeGraphExtractor:
                 cv2.circle(debug_img, (int(x), int(y)), int(radius), (0, 255, 0), 2)
                 cv2.circle(debug_img, (int(x), int(y)), 3, (0, 255, 0), -1)
 
-        if self.debug:
-            cv2.imshow("Debug: Found Green Markers", debug_img)
+        # if self.debug:
+        #     cv2.imshow("Debug: Found Green Markers", debug_img)
 
         return np.array(centers, dtype="float32")
 
@@ -207,8 +208,8 @@ class MazeGraphExtractor:
         thresh_v = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_v)
         thresh = cv2.bitwise_or(thresh_h, thresh_v)
 
-        if self.debug:
-            cv2.imshow("Debug: CLAHE", enhanced)
+        if self.debug and self.show_windows:
+            # cv2.imshow("Debug: CLAHE", enhanced)
             cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
         
         return thresh
@@ -231,8 +232,7 @@ class MazeGraphExtractor:
         inset_x = round(cell_w * self.params["inset_ratio"])
         inset_y = round(cell_h * self.params["inset_ratio"])
 
-        debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR) if self.debug else None
-
+        debug_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR) if self.show_windows else None
         def check_wall(roi, label, debug_img, x1, y1, x2, y2):
             
             #判斷 ROI 是否含有牆壁。
@@ -240,7 +240,7 @@ class MazeGraphExtractor:
                 return False  # 空 ROI 視為無牆（邊界安全保護）
             fill = cv2.countNonZero(roi) / roi.size
             is_wall = fill >= self.params["wall_threshold"]
-            if self.debug and debug_img is not None:
+            if self.debug and self.show_windows and debug_img is not None:
                 color = (0, 0, 255) if is_wall else (0, 255, 0)
                 cv2.rectangle(debug_img, (x1, y1), (x2, y2), color, -1)
                 # 顯示實際填充率，方便現場微調 wall_threshold
@@ -283,9 +283,9 @@ class MazeGraphExtractor:
                     adj_list[(r, c)].append((r + 1, c))
                     adj_list[(r + 1, c)].append((r, c))
 
-        if self.debug:
-            
-            cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
+        # if self.debug:
+            #  cv2.imshow("Debug: Final Thresh (after AND + morphology)", thresh)
+        if self.show_windows and debug_img is not None:
             cv2.imshow("Debug: Edge Scanning (fill rate shown)", debug_img)
 
         return adj_list

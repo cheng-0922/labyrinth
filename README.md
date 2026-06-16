@@ -3,6 +3,8 @@
 ### usage
 ```bash
 
+ssh lab@labyrinth
+
 cd ./project/src
 
 ## no debug
@@ -13,22 +15,45 @@ python main.py
 
 python main.py --d
 
+## image
+
+python main.py --i <file_path>
+
+## text mode
+
+python main.py --t 
+
+python main.py --d --t 
+
 ## terminal
 ## mode 0
 >> 'r' : RESET
 
->> 's' : START ...
+>> 'm' extract maze then >> 'p' : START PID
 
 >> 'j' : JOY
 
->> 'q' : quit
+>> 'o' : send a tilt message
 
->> ':': swithch to mode1
+>> 'f' : find the ball
 
-## mode 1
+>> '`' or esc on window : quit
+
+>> ':': switch to mode 1 - modify maze_extract parameters
+
+>> '/': switch to mode 2 - modify main parameters
+
+## mode 1,2 
+>> '1': go to mode 1
+
+>> '2': go to mode 2
+
+>> '?': show parameters 
+
+>> 'q': leave mode 1 or 2 to mode 0
+
 >> w = 0.25 : set parameter in extractor
 
->> q : switch to mode 0
 
 
 

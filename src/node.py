@@ -48,6 +48,36 @@ class Node:
                 return True
         return False
 
+    def is_t_junction(self):
+        """
+        判斷是否為 T 字型路口（3 個出口）
+        T 字型路口：4 邊中有 3 邊是出口，1 邊是牆壁
+        """
+        return len(self.successors) == 3
+
+    def is_corner(self):
+        """
+        判斷是否為轉角（2 個出口）
+        """
+        return len(self.successors) == 2
+
+    def is_cross(self):
+        """
+        判斷是否為十字型路口（4 個出口）
+        """
+        return len(self.successors) == 4
+
+    def get_exit_count(self):
+        """
+        取得出口數量
+        """
+        return len(self.successors)
+
     def printparam(self):
         for s in self.successors:
             print(f"node.index:{self.index}| successor: {s[0].index},direction = {Direction(s[1])},d={s[2]}")
+
+    def turn_on(self, prev, next):
+        if prev.get_direction(self) != self.get_direction(next):
+            return True
+        return False
