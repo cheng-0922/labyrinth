@@ -22,6 +22,7 @@ class MazeGraphExtractor:
             "contrast_alpha": 1.7,
             "black_v_max": 130,
             "adaptive_C": 4,
+            "min_wall_px": 5,
             "lower_green" : 75,
             "upper_green" : 95,
             "saturation" : 100
@@ -39,7 +40,7 @@ class MazeGraphExtractor:
 
             "c": "contrast_alpha",
             "contrast": "contrast_alpha",
-
+            "mwpx" : "min_wall_px",
             "g" : "lower_green" ,
             "lowerG" : "lower_green",
             "G" : "upper_greean",
@@ -201,7 +202,8 @@ class MazeGraphExtractor:
 
         # ── Step 3：形態學，消除陰影殘餘細線（各向異性 kernel 保留牆線）────────
         # 水平牆用高核、垂直牆用寬核，各自 OPEN 再合併
-        min_wall_px = max(cell_px // 5, 3)
+        # min_wall_px = max(cell_px // 5, 3)
+        min_wall_px = self.params["min_wall_px"]
         kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (min_wall_px, 1))
         kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, min_wall_px))
         thresh_h = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_h)
