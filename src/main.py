@@ -547,7 +547,7 @@ if __name__ == "__main__":
                                     step*=2
 
                                 angle_x = +int(np.clip(output_x, -step, step))
-                                angle_y = -int(np.clip(output_x, -step, step))
+                                angle_y = -int(np.clip(output_y, -step, step))
                                 
                                 if angle_y >0:
                                     angle_y = int(params["correctionY"]*angle_y)
