@@ -30,6 +30,8 @@ cmd_queue = queue.Queue()
 params = {
     "size" : 9,
     # "wall_threshold" : 0.3,
+
+    
     "endpoint" : END_POINT,
 
     "kp": 0.28,
@@ -80,7 +82,15 @@ def set_params(cmd: str):
                 continue
 
             try:
-                v = float(v_str)
+                if v_str.startswith('(') and v_str.endswith(')'):
+                    # 處理 Tuple 格式，例如 "(8,8)" -> (8, 8)
+                    v = tuple(map(int, v_str.strip('()').split(',')))
+                elif '.' in v_str:
+                    # 處理浮點數
+                    v = float(v_str)
+                else:
+                    # 處理整數
+                    v = int(v_str)
                 params[key] = v
                 print(f"[{key}] -> {v}")
             except ValueError:

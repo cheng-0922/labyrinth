@@ -212,7 +212,7 @@ class MazeGraphExtractor:
 
         # if self.debug and self.show_windows:
         #     cv2.imshow("Debug: CLAHE", enhanced)
-        #     cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
+        #     cv2.imshow("Debug: HSV Black Mask", black_mask)
         
         return thresh
     
