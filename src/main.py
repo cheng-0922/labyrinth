@@ -394,7 +394,7 @@ if __name__ == "__main__":
                         print("\n🔍 掃描中...")
                         if graph is not None:
                             m.load_from_graph(graph)
-                            if not args.text: cv2.imshow("Final Warped Maze", warped_img)
+                            # if not args.text: cv2.imshow("Final Warped Maze", warped_img)
                             has_graph = True
                             print("Graph Loaded!")
                                         

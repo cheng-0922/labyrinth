@@ -14,12 +14,14 @@ class BallDetector:
        "redh" : 170,
        "redsaturate" : 100,
        "redvibrant" : 50,
+       "circularity" : 0.8,
     }
     param_alias = {
         "rl" : "redl",
         "rh" : "redh",
         "rs" : "redsaturate",
         "rv" : "redvibrant",
+        "cir" : "circularity",
     }
     def get_params(self):
         print(self.params)
@@ -173,7 +175,7 @@ class BallDetector:
                 continue
 
             circularity = (4 * np.pi * area) / (perimeter ** 2)
-            if circularity < 0.6:
+            if circularity < self.params["circularity"]:
                 continue
 
             if circularity > best_circularity:
