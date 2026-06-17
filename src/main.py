@@ -284,7 +284,7 @@ if __name__ == "__main__":
                         print("無法取得校正影像，請確認定位點可見 (j)")
                         continue
 
-                    now = ball.find_ball(warped_img)
+                    now = ball.find_ball_round(warped_img)
                     if now is None:
                         print("未偵測到球的位置 (j)")
                         continue
@@ -362,7 +362,7 @@ if __name__ == "__main__":
                         # 修正：傳入當前分數
                         show_treasure(warped_img, treasure_dict, args.text, score)
 
-                        now = ball.find_ball(warped_img)
+                        now = ball.find_ball_round(warped_img)
                         if now is None:
                             continue
 
@@ -431,7 +431,7 @@ if __name__ == "__main__":
                                 time.sleep(0.01) 
                                 continue
                             
-                            now = ball.find_ball(warped_img)
+                            now = ball.find_ball_round(warped_img)
                             if now is None:
                                 continue
                             
@@ -543,7 +543,7 @@ if __name__ == "__main__":
                         if warped_img is None:
                             print(" 無法校正影像，請確認定位點可見")
                         else:
-                            pos = ball.find_ball(warped_img)
+                            pos = ball.find_ball_round(warped_img)
                             print(f"球的位置：{pos}")
                 
         finally:
