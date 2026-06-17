@@ -45,7 +45,7 @@ params = {
     "lookahead" : 0.6,
     "delayPID" : 0.01,
     "testangle" : 5,
-    "correctionY" : [1,0]
+    "correctionY" : 1.5
 }
 param_alias = {
     "w" : "wall_threshold" ,
@@ -547,9 +547,11 @@ if __name__ == "__main__":
                                     step*=2
 
                                 angle_x = +int(np.clip(output_x, -step, step))
-                                angle_y = -int(params["correctionY"][0]*(np.clip(output_y, -step-2, step))+params["correctionY"][1])
+                                angle_y = -int(np.clip(output_x, -step, step))
                                 
-
+                                if angle_y >0:
+                                    angle_y = params["correctionY"]*angle_y 
+                                
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
                                 if args.debug == True:
