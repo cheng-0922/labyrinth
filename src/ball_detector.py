@@ -142,7 +142,7 @@ class BallDetector:
         cell_px = min(cell_h, cell_w)
 
         r_expected = cell_px * (10 / 15) / 2
-        area_min = np.pi * (r_expected * 0.5) ** 2
+        # area_min = np.pi * (r_expected * 0.5) ** 2
         area_max = np.pi * (r_expected * 1.5) ** 2
 
         # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
