@@ -29,7 +29,7 @@ END_POINT = (8,8)
 cmd_queue = queue.Queue()
 params = {
     "size" : 9,
-    "wall_threshold" : 0.3,
+    # "wall_threshold" : 0.3,
     "endpoint" : END_POINT,
 
     "kp": 0.28,
@@ -177,7 +177,7 @@ if __name__ == "__main__":
 
     # --- Initialize Class ---
     show_windows = not args.text
-    extractor = MazeGraphExtractor(maze_size=params["size"], wall_threshold=params["wall_threshold"], debug=args.debug, show_windows=show_windows)
+    extractor = MazeGraphExtractor(maze_size=params["size"], debug=args.debug, show_windows=show_windows)
     ball = BallDetector(maze_size=params["size"], debug=args.debug, show_windows=show_windows)
     shared = {"state": 0,"cmd": None}
     threading.Thread(target=cmd_input_loop, daemon=True).start()

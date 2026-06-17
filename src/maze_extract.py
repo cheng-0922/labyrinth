@@ -3,7 +3,7 @@ import numpy as np
 
 
 class MazeGraphExtractor:
-    def __init__(self, maze_size=9, wall_threshold=0.45, debug=False, show_windows=True):
+    def __init__(self, maze_size=9, debug=False, show_windows=True):
         
         self.maze_size = maze_size
         self.debug = debug
@@ -16,7 +16,7 @@ class MazeGraphExtractor:
         # wall_thickness：ROI 寬度設為實體牆寬的倍數
         # black_v_max : HSV 黑色遮罩
         self.params = {
-            "wall_threshold": wall_threshold,
+            "wall_threshold": 0.3,
             "inset_ratio": 0.2,
             "thickness_ratio": 0.18,
             "contrast_alpha": 2.0,
