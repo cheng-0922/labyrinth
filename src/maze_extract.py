@@ -17,12 +17,12 @@ class MazeGraphExtractor:
         # black_v_max : HSV 黑色遮罩
         self.params = {
             "wall_threshold": wall_threshold,
-            "inset_ratio": 0.35,
-            "thickness_ratio": 0.14,
-            "contrast_alpha": 1.7,
+            "inset_ratio": 0.2,
+            "thickness_ratio": 0.18,
+            "contrast_alpha": 2.0,
             "black_v_max": 130,
-            "adaptive_C": 4,
-            "min_wall_px": 5,
+            "adaptive_C": 3,
+            "min_wall_px": 10,
             "lower_green" : 75,
             "upper_green" : 95,
             "saturation" : 100
