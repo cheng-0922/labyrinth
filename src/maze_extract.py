@@ -210,9 +210,9 @@ class MazeGraphExtractor:
         thresh_v = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_v)
         thresh = cv2.bitwise_or(thresh_h, thresh_v)
 
-        if self.debug and self.show_windows:
-            # cv2.imshow("Debug: CLAHE", enhanced)
-            cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
+        # if self.debug and self.show_windows:
+        #     cv2.imshow("Debug: CLAHE", enhanced)
+        #     cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
         
         return thresh
     

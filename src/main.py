@@ -37,10 +37,10 @@ params = {
     "kd": 0.03,
     "slowstep":4,
     "highstep" :8,
-    "slower" : 0.8,
+    "slower" : 0.6,
     "compensate" :1,
     "lookahead" : 0.6,
-    "delayPID" : 0.1,
+    "delayPID" : 0.01,
     "testangle" : 5,
     "correctionY" : [1,0]
 }
@@ -328,7 +328,7 @@ if __name__ == "__main__":
                     treasure_index = [tn.get_index() for tn in treasure_list]
                     
                     # 修正：確保生成的寶藏分數為正整數
-                    treasure_dict = {k: max(1, int(random.gauss(50, 15))) for k in treasure_index}
+                    treasure_dict = {k: max(1, int(m.point(now, end))) for k in treasure_index}
                     total_val = sum(treasure_dict.values())
                     if total_val == 0:
                         total_val = 1
