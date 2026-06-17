@@ -17,11 +17,12 @@ class MazeGraphExtractor:
         # black_v_max : HSV 黑色遮罩
         self.params = {
             "wall_threshold": wall_threshold,
-            "inset_ratio": 0.35,
-            "thickness_ratio": 0.14,
-            "contrast_alpha": 1.7,
+            "inset_ratio": 0.2,
+            "thickness_ratio": 0.18,
+            "contrast_alpha": 2.0,
             "black_v_max": 130,
-            "adaptive_C": 4,
+            "adaptive_C": 3,
+            "min_wall_px": 10,
             "lower_green" : 75,
             "upper_green" : 95,
             "saturation" : 100
@@ -39,7 +40,7 @@ class MazeGraphExtractor:
 
             "c": "contrast_alpha",
             "contrast": "contrast_alpha",
-
+            "mwpx" : "min_wall_px",
             "g" : "lower_green" ,
             "lowerG" : "lower_green",
             "G" : "upper_greean",
@@ -201,16 +202,17 @@ class MazeGraphExtractor:
 
         # ── Step 3：形態學，消除陰影殘餘細線（各向異性 kernel 保留牆線）────────
         # 水平牆用高核、垂直牆用寬核，各自 OPEN 再合併
-        min_wall_px = max(cell_px // 5, 3)
+        # min_wall_px = max(cell_px // 5, 3)
+        min_wall_px = int(self.params["min_wall_px"])
         kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (min_wall_px, 1))
         kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, min_wall_px))
         thresh_h = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_h)
         thresh_v = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel_v)
         thresh = cv2.bitwise_or(thresh_h, thresh_v)
 
-        if self.debug and self.show_windows:
-            # cv2.imshow("Debug: CLAHE", enhanced)
-            cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
+        # if self.debug and self.show_windows:
+        #     cv2.imshow("Debug: CLAHE", enhanced)
+        #     cv2.imshow("Debug: HSV Black Mask (陰影應不出現)", black_mask)
         
         return thresh
     

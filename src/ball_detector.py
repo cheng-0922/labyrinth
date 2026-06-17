@@ -10,16 +10,22 @@ class BallDetector:
         self.show_windows = show_windows
         self.ref_gray = None
     params={
-       "redl" : 10,
-       "redh" : 170,
-       "redsaturate" : 100,
-       "redvibrant" : 50,
+        "redl" : 10,
+        "redh" : 170,
+        "redsaturate1" : 100,
+        "redsaturate2" : 255,
+        "redvibrant1" : 50,
+        "redvibrant2" : 255,
+        "circularity" : 0.8,
     }
     param_alias = {
         "rl" : "redl",
         "rh" : "redh",
-        "rs" : "redsaturate",
-        "rv" : "redvibrant",
+        "rs1" : "redsaturate1",
+        "rs2" : "redsaturate2",
+        "rv1" : "redvibrant1",
+        "rv2" : "redvibrant2",
+        "cir" : "circularity",
     }
     def get_params(self):
         print(self.params)
@@ -56,7 +62,10 @@ class BallDetector:
                 continue
 
             try:
-                v = float(v_str)
+                if '.' in v_str:
+                    v = float(v_str)
+                else:
+                    v = int(v_str)
                 self.params[key] = v
                 print(f"[{key}] -> {v}")
             except ValueError:
@@ -78,8 +87,8 @@ class BallDetector:
  
         # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
         hsv = cv2.cvtColor(warped_img, cv2.COLOR_BGR2HSV)
-        mask1 = cv2.inRange(hsv, np.array([0,self.params["redsaturate"], self.params["redvibrant"]]), np.array([self.params["redl"],  255, 255]))
-        mask2 = cv2.inRange(hsv, np.array([self.params["redh"], self.params["redsaturate"], self.params["redvibrant"]]), np.array([180, 255, 255]))
+        mask1 = cv2.inRange(hsv, np.array([0,self.params["redsaturate1"], self.params["redvibrant1"]]), np.array([self.params["redl"],  self.params["redsaturate2"], self.params["redvibrant2"]]))
+        mask2 = cv2.inRange(hsv, np.array([self.params["redh"], self.params["redsaturate1"], self.params["redvibrant1"]]), np.array([180, self.params["redsaturate2"], self.params["redvibrant2"]]))
         red_mask = cv2.bitwise_or(mask1, mask2)
         # ────────────────────────────────────────────────────────────────────
  
@@ -140,7 +149,8 @@ class BallDetector:
         cell_px = min(cell_h, cell_w)
 
         r_expected = cell_px * (10 / 15) / 2
-        area_min = np.pi * (r_expected * 0.5) ** 2
+        # area_min = np.pi * (r_expected * 0.5) ** 2
+        area_min = 0
         area_max = np.pi * (r_expected * 1.5) ** 2
 
         # ── Step 1：紅色 HSV 遮罩（兩段合併）────────────────────────────────
@@ -173,7 +183,7 @@ class BallDetector:
                 continue
 
             circularity = (4 * np.pi * area) / (perimeter ** 2)
-            if circularity < 0.6:
+            if circularity < self.params["circularity"]:
                 continue
 
             if circularity > best_circularity:
