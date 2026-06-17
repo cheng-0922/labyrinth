@@ -419,7 +419,9 @@ if __name__ == "__main__":
                         kp, ki, kd = params["kp"], params["ki"], params["kd"] 
                         prev_err_x, prev_err_y = 0.0, 0.0
                         integral_x, integral_y = 0.0, 0.0
-                        
+                        pre_i_x, pre_i_y = 0.0, 0.0
+                        count_i = 0
+
                         while True:
                             key = cv2.waitKey(1) & 0xFF
                             msg = arduino.read()
@@ -506,9 +508,16 @@ if __name__ == "__main__":
                                 err_x = target_px_x - ball_px_x
                                 err_y = target_px_y - ball_px_y
                                 
+                                prev_i_x , prev_i_y = integral_x, integral_y
+                                
                                 integral_x = np.clip(integral_x + err_x, -50, 50)
                                 integral_y = np.clip(integral_y + err_y, -50, 50)
                                 
+                                if integral_x >=49 and integral_y >=49 and prev_i_x>=49 and prev_i_y>=49:
+                                    count_i += 1
+                                else :
+                                    count_i =0
+
                                 deriv_x = err_x - prev_err_x
                                 deriv_y = err_y - prev_err_y
                                 
@@ -534,11 +543,13 @@ if __name__ == "__main__":
                                         output_y = i if output_y > 0 else -i
                                         output_x = 0
                                 
-                                
+                                if count_i >9 :
+                                    step*=2
 
                                 angle_x = +int(np.clip(output_x, -step, step))
                                 angle_y = -int(params["correctionY"][0]*(np.clip(output_y, -step-2, step))+params["correctionY"][1])
                                 
+
                                 cmd_str = f"X{angle_x:+d}Y{angle_y:+d}"
                                 arduino.send_line(cmd_str)
                                 if args.debug == True:
