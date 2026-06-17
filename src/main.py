@@ -386,6 +386,7 @@ if __name__ == "__main__":
                     # 離開迴圈後可選擇關閉遊戲視窗
                     if not args.text:
                         cv2.destroyWindow("Final Warped Maze")
+                    arduino.send("q")
                 elif key == ord("q") or cmd == 'q':
                     arduino.send("q")
 
