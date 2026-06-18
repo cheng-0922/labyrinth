@@ -1,6 +1,6 @@
 # labyrinth
 
-### usage
+## usage
 ```bash
 
 ssh lab@labyrinth
@@ -24,14 +24,25 @@ python main.py --i <file_path>
 python main.py --t 
 
 python main.py --d --t 
+```
+### terminal
+- mode 0
 
-## terminal
-## mode 0
+```bash
 >> 'r' : RESET
+```
+ -  - auto play mode 
+```bash
+>> 'm' extract maze then >> 'p' : START PID auto control
 
->> 'm' extract maze then >> 'p' : START PID
+>> 'q' leave, print("QUIT P_CONTROL")
+```
 
->> 'j' : JOY
+- - hand controll mode
+```bash
+>> 'm' extract maze then >> 'j' : JOY on joystick (print "JOY")
+
+>> 'q' leave, print ("QUIT JOY")
 
 >> 'o' : send a tilt message
 
@@ -39,27 +50,50 @@ python main.py --d --t
 
 >> '`' or esc on window : quit
 
->> ':': switch to mode 1 - modify maze_extract parameters
+>> ':': switch to mode 1 - modify maze_extract.py parameters
 
->> '/': switch to mode 2 - modify main parameters
+>> '/': switch to mode 2 - modify main.py parameters
 
-## mode 1,2 
+>> '.': switch to mode 3 - modify ball_detector.py parameters
+```
+- mode 1,2,3
+
+```bash
 >> '1': go to mode 1
 
 >> '2': go to mode 2
+
+>> '3' got to mode 3
 
 >> '?': show parameters 
 
 >> 'q': leave mode 1 or 2 to mode 0
 
 >> w = 0.25 : set parameter in extractor
+```
 
+### CV2 window
+- auto play mode 
+```bash
+>> 'm' extract maze, shows fillrate on black mask and its connectivity
 
+then >> 'p' : START PID auto control
+
+>> 'q' leave, print("QUIT P_CONTROL")
+```
+
+- hand controll mode
+```bash
+>> 'm' extract maze, shows fillrate on black mask and its 
+
+then >> 'j' : JOY on joystick (print "JOY") shows treasure points
+
+>> 'q' leave, print ("QUIT JOY")
 
 
 ```
 
-### initial sets
+# initial sets
 ```bash
 sudo apt install python3-opencv -y
 
