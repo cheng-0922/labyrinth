@@ -38,7 +38,7 @@ params = {
     "ki": 0.05,
     "kd": 0.03,
     "kps" : 0.6,
-    "slowstep":4,
+    "slowstep":3,
     "highstep" :8,
     "slower" : 0.6,
     "compensate" :1,
