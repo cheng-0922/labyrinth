@@ -12,7 +12,7 @@ from node import Node
 from maze_extract import MazeGraphExtractor 
 from ball_detector import BallDetector
 from ser import ArduinoSerial
-from control import PredictiveController
+
 class Timer:
     def __enter__(self):
         self.start_time = time.perf_counter()
