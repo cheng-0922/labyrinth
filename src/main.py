@@ -45,7 +45,8 @@ params = {
     "lookahead" : 0.6,
     "delayPID" : 0.01,
     "testangle" : 5,
-    "correctionY" : 1.5
+    "correctionY" : 1.8,
+    "inte_s" : 6,
 }
 param_alias = {
     "w" : "wall_threshold" ,
@@ -543,12 +544,15 @@ if __name__ == "__main__":
                                         output_y = i if output_y > 0 else -i
                                         output_x = 0
                                 
-                                if count_i >9 :
+                                if count_i >params["inte_s"] :
                                     step*=2
 
                                 angle_x = +int(np.clip(output_x, -step, step))
                                 angle_y = -int(np.clip(output_y, -step, step))
-                                
+                                if count_i >2*params["inte_s"] :
+                                    angle_x*=2
+                                    angle_y*=2
+                                    
                                 if angle_y >0:
                                     angle_y = int(params["correctionY"]*angle_y)
                                 

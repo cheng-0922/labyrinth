@@ -16,10 +16,10 @@ class MazeGraphExtractor:
         # wall_thickness：ROI 寬度設為實體牆寬的倍數
         # black_v_max : HSV 黑色遮罩
         self.params = {
-            "wall_threshold": 0.3,
+            "wall_threshold": 0.25,
             "inset_ratio": 0.2,
             "thickness_ratio": 0.18,
-            "contrast_alpha": 2.0,
+            "contrast_alpha": 1.7,
             "black_v_max": 130,
             "adaptive_C": 3,
             "min_wall_px": 10,
@@ -31,7 +31,7 @@ class MazeGraphExtractor:
         self.param_alias = {
             "w": "wall_threshold",
             "wall": "wall_threshold",
-
+            
             "i": "inset_ratio",
             "inset": "inset_ratio",
 
