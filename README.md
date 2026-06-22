@@ -92,6 +92,62 @@ then >> 'j' : JOY on joystick (print "JOY") shows treasure points
 
 
 ```
+# Tree of files
+
+```bash
+.
+├── README.md                          # 操作說明
+├── experiments                        # 本專案中開發歷程之階段性檔案
+│   ├── autotest2                      # 固定路徑之馬達操控測試
+│   │   ├── autotest2.ino
+│   │   └── setting.h
+│   ├── ball_detect                    # 定位迷宮中的鋼珠
+│   │   ├── Images
+│   │   │   ├── Final27.05.2026.png
+│   │   │   ├── green05.2026.png
+│   │   │   └── test_maze.jpg
+│   │   ├── ball.py
+│   │   ├── bearing_ball.py
+│   │   └── test.py
+│   ├── maze_extract                   # 影像辨識迷宮構造（以照片測試程式）、控制雛形
+│   │   ├── Debug30.05.2026.png
+│   │   ├── Final27.05.png
+│   │   ├── ball_detector.py
+│   │   ├── bm01.jpg
+│   │   ├── bm02.jpg
+│   │   ├── bm03.jpg
+│   │   ├── bm30.01.png
+│   │   ├── generate_test_img.py
+│   │   ├── green05.2026.png
+│   │   ├── list.txt
+│   │   ├── main.py
+│   │   ├── maze.csv
+│   │   ├── maze.png
+│   │   ├── maze.py
+│   │   ├── maze_dect.py
+│   │   ├── maze_extract.py
+│   │   ├── maze_tem.png
+│   │   ├── node.py
+│   │   ├── ref0.jpg
+│   │   ├── ser.py
+│   │   ├── test.py
+│   │   ├── test_maze.jpg
+│   │   └── test_maze_auto.jpg
+│   └── servo                            # servo 馬達控制
+│       └── servo.ino
+│
+└── src                                  # 執行區
+    ├── arduino_serial_test              # arduino 上燒錄程式
+    │   ├── arduino_serial_test.ino      # 與main.py之通訊與執行程式
+    │   └── setting.h                    # 伺服馬達設定與控制程式
+    ├── ball_detector.py                 # 定位迷宮中的鋼珠
+    ├── main.py                          # 主程式，執行輸入與控制迴圈
+    ├── maze.py                          # 圖論之地圖與BFS演算法
+    ├── maze_extract.py                  # 影像辨識迷宮構造與建構地圖adjacent list
+    ├── node.py                          # 地圖節點物件
+    └── ser.py                           # 與arduino之通訊控制
+
+```
 
 # initial sets
 ```bash
